@@ -1,0 +1,47 @@
+# Git Ignore for Movie Streaming Platform
+
+# Backend (Java/Maven)
+backend/target/
+backend/.mvn/
+backend/mvnw
+backend/mvnw.cmd
+
+# Frontend (Node)
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+
+# AI Service (Python)
+ai-service/venv/
+ai-service/__pycache__/
+ai-service/*.pyc
+ai-service/.env
+
+# Android
+mobile/.gradle/
+mobile/build/
+mobile/local.properties
+mobile/.idea/
+mobile/*.iml
+
+# Storage
+storage/movies/*/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Database
+*.sql.backup
