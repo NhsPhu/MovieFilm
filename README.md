@@ -444,8 +444,8 @@ MIT License - Educational Project
 ## 📞 Support
 
 Nếu gặp vấn đề, tạo issue hoặc liên hệ:
-- Email: admin@movieplatform.com
-- GitHub Issues: [Create Issue](#)
+- Email: nguyenhosyphu@gmail.com
+- GitHub Issues: github.com/NhsPhu
 
 ---
 
