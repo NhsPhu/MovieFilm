@@ -32,12 +32,21 @@ public class AuthService {
     private AuthenticationManager authenticationManager;
 
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
+        String account = request.getAccount();
+        boolean isEmail = account.contains("@");
+
+        if (isEmail && userRepository.existsByEmail(account)) {
             throw new RuntimeException("Email already exists");
+        } else if (!isEmail && userRepository.existsByPhoneNumber(account)) {
+            throw new RuntimeException("Phone number already exists");
         }
 
         User user = new User();
-        user.setEmail(request.getEmail());
+        if (isEmail) {
+            user.setEmail(account);
+        } else {
+            user.setPhoneNumber(account);
+        }
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setFullName(request.getFullName());
         user.setRole(User.UserRole.USER);
@@ -45,47 +54,51 @@ public class AuthService {
 
         userRepository.save(user);
 
-        String token = tokenProvider.generateTokenFromEmail(user.getEmail(), user.getRole().name());
+        String principal = isEmail ? user.getEmail() : user.getPhoneNumber();
+        String token = tokenProvider.generateTokenFromEmail(principal, user.getRole().name());
 
         return new AuthResponse(
                 token,
-                user.getEmail(),
+                principal,
                 user.getFullName(),
                 user.getRole().name());
     }
 
     public AuthResponse login(LoginRequest request) {
+        String account = request.getAccount();
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
+                new UsernamePasswordAuthenticationToken(account, request.getPassword()));
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        User user = userRepository.findByEmail(request.getEmail())
+        User user = userRepository.findByEmailOrPhoneNumber(account, account)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         String token = tokenProvider.generateToken(authentication, user.getRole().name());
+        String principal = user.getEmail() != null ? user.getEmail() : user.getPhoneNumber();
 
         return new AuthResponse(
                 token,
-                user.getEmail(),
+                principal,
                 user.getFullName(),
                 user.getRole().name());
     }
 
-    public UserDTO getCurrentUser(String email) {
-        User user = userRepository.findByEmail(email)
+    public UserDTO getCurrentUser(String account) {
+        User user = userRepository.findByEmailOrPhoneNumber(account, account)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
+        String principal = user.getEmail() != null ? user.getEmail() : user.getPhoneNumber();
         return new UserDTO(
                 user.getId(),
-                user.getEmail(),
+                principal,
                 user.getFullName(),
                 user.getRole().name(),
                 user.getIsActive());
     }
 
-    public void changePassword(String email, String oldPassword, String newPassword) {
-        User user = userRepository.findByEmail(email)
+    public void changePassword(String account, String oldPassword, String newPassword) {
+        User user = userRepository.findByEmailOrPhoneNumber(account, account)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {

@@ -1,98 +1,93 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, Loader2 } from 'lucide-react'
 import useAuthStore from '../store/useAuthStore'
 
 export default function LoginPage() {
-    const navigate = useNavigate()
-    const { login } = useAuthStore()
-    const [email, setEmail] = useState('')
+    const [account, setAccount] = useState('')
     const [password, setPassword] = useState('')
     const [error, setError] = useState('')
-    const [loading, setLoading] = useState(false)
+    const { login } = useAuthStore()
+    const navigate = useNavigate()
+
+    const isPhone = /^\d+$/.test(account)
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        setError('')
-        setLoading(true)
         try {
-            await login(email, password)
+            await login(account, password)
             navigate('/')
-        } catch {
-            setError('EMAIL HOẶC MẬT KHẨU KHÔNG ĐÚNG.')
-        } finally {
-            setLoading(false)
-        }
+        } catch (err) { setError(err.response?.data?.message || 'Đăng nhập thất bại') }
     }
 
     return (
-        <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6 texture-lines-opacity">
-            <div className="w-full max-w-md bg-background border-[4px] border-foreground p-8 md:p-12 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] relative">
-                
-                {/* Decorative Elements */}
-                <div className="absolute top-4 right-4 w-4 h-4 bg-foreground"></div>
-                
-                <div className="mb-12">
-                    <h1 className="text-4xl md:text-5xl font-serif font-black uppercase tracking-tighter leading-none mb-2">
-                        Đăng Nhập.
-                    </h1>
-                    <p className="font-mono text-sm uppercase tracking-widest text-mutedForeground">
-                        MovieStream Portal
-                    </p>
+        <div className="bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container min-h-screen flex flex-col">
+            <nav className="fixed top-0 w-full z-50 bg-transparent backdrop-blur-xl dark:bg-[#131313]/70 flex justify-between items-center px-6 py-4 max-w-none shadow-2xl shadow-black/50">
+                <Link to="/" className="text-2xl font-black tracking-tighter text-[#E50914] uppercase font-['Manrope']">RimCinema</Link>
+                <div className="hidden md:flex gap-8 items-center">
+                    <Link className="text-gray-400 hover:text-white transition-colors font-['Manrope'] font-bold tracking-tight" to="/">Phim</Link>
                 </div>
+            </nav>
 
-                {error && (
-                    <div className="mb-8 border-l-[4px] border-foreground bg-[#f5f5f5] p-4 text-sm font-mono font-bold uppercase">
-                        {error}
+            <main className="flex-grow flex items-center justify-center pt-24 pb-12 cinematic-bg relative">
+                <div className="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-surface/80 pointer-events-none"></div>
+                <section className="relative z-10 w-full max-w-md px-6">
+                    <div className="glass-panel p-8 md:p-10 rounded-xl shadow-2xl border border-white/5">
+                        <header className="mb-10 space-y-2">
+                            <span className="text-primary font-label text-xs uppercase tracking-widest font-semibold">Chào Mừng Trở Lại</span>
+                            <h1 className="text-4xl font-headline font-extrabold tracking-tight text-on-surface">Đăng Nhập</h1>
+                            <p className="text-on-surface-variant text-sm font-light">Tiếp tục hành trình điện ảnh của bạn.</p>
+                        </header>
+                        {error && <p className="text-error text-xs mb-4">{error}</p>}
+                        <form className="space-y-6" onSubmit={handleSubmit}>
+                            <div>
+                                <label className="block text-xs font-label uppercase tracking-widest text-on-surface-variant mb-2 ml-1" htmlFor="account">Email hoặc Số điện thoại</label>
+                                <div className="relative flex items-center">
+                                    {isPhone && (
+                                        <div className="absolute left-0 top-0 bottom-0 text-on-surface-variant px-3 font-bold border-r border-outline-variant flex items-center justify-center gap-1 bg-surface-container-low rounded-l-md z-10">
+                                            +84 <span className="material-symbols-outlined text-[10px]">expand_more</span>
+                                        </div>
+                                    )}
+                                    <input 
+                                        className={`w-full bg-surface-container-lowest border-0 border-b border-outline-variant focus:border-primary focus:ring-0 text-on-surface placeholder:text-surface-container-highest transition-all duration-300 py-3 ${isPhone ? 'pl-20' : 'px-1'}`} 
+                                        id="account" 
+                                        placeholder={isPhone ? "912 345 678" : "email@rimcinema.com"} 
+                                        type="text" 
+                                        value={account} 
+                                        onChange={e => setAccount(e.target.value)}
+                                        autoComplete="off"
+                                    />
+                                    {!isPhone && account.length > 0 && !account.includes('@') && (
+                                        <div className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant/50 pointer-events-none text-sm font-medium">
+                                            @gmail.com
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-label uppercase tracking-widest text-on-surface-variant mb-2 ml-1" htmlFor="password">Mật Khẩu</label>
+                                <input className="w-full bg-surface-container-lowest border-0 border-b border-outline-variant focus:border-primary focus:ring-0 text-on-surface placeholder:text-surface-container-highest transition-all duration-300 py-3 px-1" id="password" placeholder="••••••••" type="password" value={password} onChange={e => setPassword(e.target.value)}/>
+                            </div>
+                            <button className="w-full bg-primary-container text-on-primary-container font-headline font-extrabold uppercase tracking-widest py-4 mt-4 shadow-lg shadow-primary-container/20 hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-center gap-2" type="submit">
+                                Đăng Nhập
+                                <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                            </button>
+                            <div className="text-center pt-4">
+                                <p className="text-xs text-on-surface-variant uppercase tracking-widest">
+                                    Chưa có tài khoản? <Link className="text-primary font-bold hover:text-on-surface transition-colors" to="/register">Đăng Ký</Link>
+                                </p>
+                            </div>
+                        </form>
                     </div>
-                )}
+                </section>
+            </main>
 
-                <form onSubmit={handleSubmit} className="flex flex-col gap-8">
-                    <div className="relative">
-                        <input
-                            id="login-email"
-                            type="email"
-                            required
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full bg-transparent border-b-[4px] border-[#ccc] focus:border-foreground py-2 px-0 text-lg font-mono placeholder:text-mutedForeground focus:outline-none transition-colors peer"
-                            placeholder="Email"
-                        />
-                    </div>
-                    
-                    <div className="relative">
-                        <input
-                            id="login-password"
-                            type="password"
-                            required
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full bg-transparent border-b-[4px] border-[#ccc] focus:border-foreground py-2 px-0 text-lg font-mono placeholder:text-mutedForeground focus:outline-none transition-colors peer"
-                            placeholder="Mật khẩu"
-                        />
-                    </div>
-
-                    <button
-                        id="login-submit"
-                        type="submit"
-                        disabled={loading}
-                        className="mt-4 flex items-center justify-between w-full bg-foreground text-background font-mono font-bold text-lg uppercase tracking-widest px-6 py-4 border-[2px] border-foreground hover:bg-background hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-none overflow-hidden group"
-                    >
-                        <span>{loading ? 'Đang Xử Lý...' : 'Tiến Hành'}</span>
-                        {!loading && <ArrowRight className="w-6 h-6 transform group-hover:translate-x-2 transition-transform" />}
-                        {loading && <Loader2 className="w-6 h-6 animate-spin" />}
-                    </button>
-                </form>
-
-                <div className="mt-12 pt-8 border-t-[2px] border-foreground">
-                    <p className="font-serif text-lg italic">
-                        Chưa có tài khoản?{' '}
-                        <Link to="/register" className="font-serif font-black text-xl hover:underline uppercase not-italic">
-                            Đăng ký
-                        </Link>
-                    </p>
+            <footer className="bg-[#0E0E0E] w-full py-12 border-t border-white/5 flex flex-col items-center gap-6 px-10">
+                <div className="flex flex-wrap justify-center gap-8 md:gap-12">
+                    <a className="font-['Inter'] text-xs uppercase tracking-widest text-gray-500 hover:text-[#FFB4AA] transition-colors opacity-80 hover:opacity-100" href="#">Chính Sách Bảo Mật</a>
+                    <a className="font-['Inter'] text-xs uppercase tracking-widest text-gray-500 hover:text-[#FFB4AA] transition-colors opacity-80 hover:opacity-100" href="#">Điều Khoản Dịch Vụ</a>
                 </div>
-            </div>
+                <div className="font-['Inter'] text-xs uppercase tracking-widest text-gray-500">© 2024 RIMCINEMA. MỌc QUYỀN ĐƯỢC BẢO LƯU.</div>
+            </footer>
         </div>
     )
 }

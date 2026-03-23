@@ -6,6 +6,11 @@ export const movieService = {
         return response.data
     },
 
+    getMovie: async (id) => {
+        const response = await api.get(`/movies/${id}`)
+        return response.data
+    },
+
     getMovieById: async (id) => {
         const response = await api.get(`/movies/${id}`)
         return response.data
@@ -32,6 +37,18 @@ export const movieService = {
 
     getGenres: async () => {
         const response = await api.get('/genres')
+        return response.data
+    },
+
+    createMovie: async (formData) => {
+        const response = await api.post('/admin/movies', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        })
+        return response.data
+    },
+
+    deleteMovie: async (id) => {
+        const response = await api.delete(`/admin/movies/${id}`)
         return response.data
     },
 

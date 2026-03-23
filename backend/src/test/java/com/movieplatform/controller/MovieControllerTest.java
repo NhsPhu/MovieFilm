@@ -69,7 +69,7 @@ class MovieControllerTest {
 
         // Register and get auth token
         RegisterRequest reg = new RegisterRequest();
-        reg.setEmail("movietest@test.com");
+        reg.setAccount("movietest@test.com");
         reg.setPassword("password123");
         reg.setFullName("Movie Test User");
 

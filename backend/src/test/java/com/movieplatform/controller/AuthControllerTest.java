@@ -32,7 +32,7 @@ class AuthControllerTest {
     @Test
     void register_ValidRequest_Returns200() throws Exception {
         RegisterRequest request = new RegisterRequest();
-        request.setEmail("newuser@test.com");
+        request.setAccount("newuser@test.com");
         request.setPassword("password123");
         request.setFullName("New User");
 
@@ -49,7 +49,7 @@ class AuthControllerTest {
     void register_DuplicateEmail_Returns500() throws Exception {
         // Register first time
         RegisterRequest request = new RegisterRequest();
-        request.setEmail("duplicate@test.com");
+        request.setAccount("duplicate@test.com");
         request.setPassword("password123");
         request.setFullName("User");
 
@@ -69,7 +69,7 @@ class AuthControllerTest {
     void login_ValidCredentials_Returns200WithToken() throws Exception {
         // First register
         RegisterRequest reg = new RegisterRequest();
-        reg.setEmail("loginuser@test.com");
+        reg.setAccount("loginuser@test.com");
         reg.setPassword("password123");
         reg.setFullName("Login User");
 
@@ -80,7 +80,7 @@ class AuthControllerTest {
 
         // Then login
         LoginRequest loginRequest = new LoginRequest();
-        loginRequest.setEmail("loginuser@test.com");
+        loginRequest.setAccount("loginuser@test.com");
         loginRequest.setPassword("password123");
 
         mockMvc.perform(post("/api/auth/login")
@@ -95,7 +95,7 @@ class AuthControllerTest {
     void login_WrongPassword_Returns401() throws Exception {
         // Register user
         RegisterRequest reg = new RegisterRequest();
-        reg.setEmail("wrongpass@test.com");
+        reg.setAccount("wrongpass@test.com");
         reg.setPassword("correctpassword");
         reg.setFullName("Wrong Pass User");
 
@@ -106,7 +106,7 @@ class AuthControllerTest {
 
         // Login with wrong password
         LoginRequest loginRequest = new LoginRequest();
-        loginRequest.setEmail("wrongpass@test.com");
+        loginRequest.setAccount("wrongpass@test.com");
         loginRequest.setPassword("wrongpassword");
 
         mockMvc.perform(post("/api/auth/login")
@@ -119,7 +119,7 @@ class AuthControllerTest {
     void getMe_WithValidToken_Returns200() throws Exception {
         // Register to get token
         RegisterRequest reg = new RegisterRequest();
-        reg.setEmail("meuser@test.com");
+        reg.setAccount("meuser@test.com");
         reg.setPassword("password123");
         reg.setFullName("Me User");
 

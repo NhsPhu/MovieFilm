@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Star, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { useForm as useRHForm } from 'react-hook-form'
 import api from '../services/api'
 import useAuthStore from '../store/useAuthStore'
 
 export default function ReviewSection({ movieId, onReviewSubmitted }) {
-    const { isAuthenticated } = useAuthStore()
+    const { isAuthenticated, user } = useAuthStore()
     const [reviews, setReviews] = useState([])
     const [loading, setLoading] = useState(true)
     const [submitting, setSubmitting] = useState(false)
@@ -40,7 +40,7 @@ export default function ReviewSection({ movieId, onReviewSubmitted }) {
             await api.post(`/movies/${movieId}/rate`, data)
             reset({ score: 0, review: '' })
             await fetchReviews()
-            if (onReviewSubmitted) onReviewSubmitted() // trigger parent refresh (update avg rating)
+            if (onReviewSubmitted) onReviewSubmitted() // trigger parent refresh
         } catch (error) {
             console.error('Failed to submit review', error)
         } finally {
@@ -49,89 +49,109 @@ export default function ReviewSection({ movieId, onReviewSubmitted }) {
     }
 
     return (
-        <div className="mt-16 border-t-4 border-foreground pt-12">
-            <h3 className="text-3xl font-serif font-black tracking-tighter mb-8 uppercase">Đánh giá & Nhận xét</h3>
+        <div className="mt-12">
+            <h3 className="text-2xl font-headline font-bold mb-8 text-white border-b border-outline-variant/30 pb-4">Audience Reviews</h3>
             
             {/* Review Form */}
             {isAuthenticated() ? (
-                <div className="mb-12 bg-background border-2 border-foreground p-6">
-                    <h4 className="font-mono text-sm uppercase font-bold mb-4 tracking-widest">Viết nhận xét của bạn</h4>
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                        <div>
-                            <div className="flex gap-2">
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                    <Star
-                                        key={star}
-                                        className={`w-8 h-8 cursor-pointer transition-colors ${
-                                            star <= (hoverScore || score) ? 'fill-foreground text-foreground' : 'text-mutedForeground'
-                                        }`}
-                                        onMouseEnter={() => setHoverScore(star)}
-                                        onMouseLeave={() => setHoverScore(0)}
-                                        onClick={() => setValue('score', star, { shouldValidate: true })}
-                                    />
-                                ))}
-                            </div>
-                            {score === 0 && <p className="text-red-500 font-mono text-xs mt-2">Vui lòng chọn số sao.</p>}
+                <div className="mb-12 bg-surface-container rounded-xl p-6 border border-outline-variant/30">
+                    <div className="flex items-center gap-4 mb-6">
+                        <div className="w-10 h-10 rounded-full bg-primary-container text-white flex items-center justify-center font-bold text-lg">
+                            {user?.username?.charAt(0).toUpperCase() || 'U'}
                         </div>
+                        <div>
+                            <h4 className="font-headline font-bold text-white">Rate and Review</h4>
+                            <p className="text-xs text-gray-400 font-body">Share your thoughts on this movie</p>
+                        </div>
+                    </div>
+                    
+                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                        <div className="flex items-center gap-2">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                                <span
+                                    key={star}
+                                    className={`material-symbols-outlined cursor-pointer text-3xl transition-transform hover:scale-110 ${
+                                        star <= (hoverScore || score) ? 'text-primary drop-shadow-[0_0_8px_rgba(255,180,170,0.6)]' : 'text-gray-600'
+                                    }`}
+                                    style={{fontVariationSettings: star <= (hoverScore || score) ? "'FILL' 1" : "'FILL' 0"}}
+                                    onMouseEnter={() => setHoverScore(star)}
+                                    onMouseLeave={() => setHoverScore(0)}
+                                    onClick={() => setValue('score', star, { shouldValidate: true })}
+                                >
+                                    star
+                                </span>
+                            ))}
+                        </div>
+                        {score === 0 && hoverScore === 0 && <p className="text-red-400 text-xs font-body mt-1">Please select a rating.</p>}
 
                         <div>
                             <textarea
                                 {...register('review')}
-                                rows="3"
-                                placeholder="Chia sẻ cảm nghĩ của bạn về bộ phim này..."
-                                className="w-full bg-transparent border-2 border-foreground p-3 font-mono text-sm focus:outline-none focus:bg-foreground focus:text-background transition-colors resize-none"
+                                rows="4"
+                                placeholder="What did you think about the movie?"
+                                className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-lg p-4 font-body text-sm text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors resize-none placeholder-gray-500"
                             ></textarea>
                         </div>
 
-                        <button
-                            type="submit"
-                            disabled={submitting || score === 0}
-                            className="bg-foreground text-background px-6 py-2 pb-1 font-mono text-sm uppercase font-bold tracking-widest hover:bg-background hover:text-foreground border-2 border-foreground transition-none disabled:opacity-50 flex items-center gap-2"
-                        >
-                            {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                            Gửi đánh giá
-                        </button>
+                        <div className="flex justify-end">
+                            <button
+                                type="submit"
+                                disabled={submitting || score === 0}
+                                className="bg-primary-container text-on-primary-container px-6 py-2 rounded-lg font-headline font-bold tracking-wide hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100 flex items-center gap-2"
+                            >
+                                {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                                Post Review
+                            </button>
+                        </div>
                     </form>
                 </div>
             ) : (
-                <div className="mb-12 bg-muted p-6 border border-dashed border-foreground text-center">
-                    <p className="font-mono text-sm tracking-widest uppercase">Vui lòng đăng nhập để đánh giá phim.</p>
+                <div className="mb-12 bg-surface-container/50 rounded-xl p-8 border border-outline-variant/30 text-center">
+                    <span className="material-symbols-outlined text-4xl text-gray-500 mb-2">lock</span>
+                    <h4 className="font-headline font-bold text-white mb-2">Sign in to Review</h4>
+                    <p className="font-body text-sm text-gray-400">You must be logged in to leave a rating and review.</p>
                 </div>
             )}
 
             {/* Reviews List */}
             <div>
-                <h4 className="font-mono text-sm uppercase font-bold mb-6 tracking-widest">Khán giả nói gì ({reviews.length})</h4>
+                <h4 className="font-headline font-bold text-lg mb-6 text-gray-300">Recent Comments ({reviews.length})</h4>
                 
                 {loading ? (
                     <div className="flex justify-center py-10">
-                        <Loader2 className="w-8 h-8 animate-spin text-foreground" />
+                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
                     </div>
                 ) : reviews.length === 0 ? (
-                    <p className="font-serif italic text-mutedForeground">Chưa có đánh giá nào cho phim này.</p>
+                    <div className="bg-surface-container/30 rounded-xl p-8 text-center border border-outline-variant/20">
+                        <p className="font-body text-gray-500">No reviews yet. Be the first to review!</p>
+                    </div>
                 ) : (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                         {reviews.map((r) => (
-                            <div key={r.id} className="border-b-[1px] border-foreground pb-6">
-                                <div className="flex justify-between items-start mb-2">
-                                    <div>
-                                        <p className="font-bold font-mono text-sm uppercase">{r.userName}</p>
-                                        <div className="flex gap-1 mt-1">
-                                            {[1, 2, 3, 4, 5].map(star => (
-                                                <Star 
-                                                    key={star} 
-                                                    className={`w-3 h-3 ${star <= r.score ? 'fill-foreground text-foreground' : 'text-mutedForeground opacity-30'}`} 
-                                                />
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <span className="font-mono text-xs text-mutedForeground">
-                                        {new Date(r.createdAt).toLocaleDateString('vi-VN')}
-                                    </span>
+                            <div key={r.id} className="bg-surface-container rounded-xl p-5 border border-outline-variant/30 flex gap-4">
+                                <div className="w-10 h-10 rounded-full bg-surface-variant flex items-center justify-center font-bold text-white shrink-0">
+                                    {r.userName?.charAt(0).toUpperCase() || 'U'}
                                 </div>
-                                {r.review && (
-                                    <p className="font-body text-sm mt-3 border-l-2 border-foreground pl-3 italic">"{r.review}"</p>
-                                )}
+                                <div className="flex-1">
+                                    <div className="flex justify-between items-start mb-1">
+                                        <h5 className="font-bold font-headline text-white text-sm">{r.userName}</h5>
+                                        <span className="font-body text-xs text-gray-500">
+                                            {new Date(r.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                        </span>
+                                    </div>
+                                    <div className="flex gap-0.5 mb-2">
+                                        {[1, 2, 3, 4, 5].map(star => (
+                                            <span 
+                                                key={star} 
+                                                className={`material-symbols-outlined text-sm ${star <= r.score ? 'text-primary' : 'text-gray-600'}`}
+                                                style={{fontVariationSettings: star <= r.score ? "'FILL' 1" : "'FILL' 0"}}
+                                            >star</span>
+                                        ))}
+                                    </div>
+                                    {r.review && (
+                                        <p className="font-body text-sm text-gray-300 leading-relaxed">{r.review}</p>
+                                    )}
+                                </div>
                             </div>
                         ))}
                     </div>

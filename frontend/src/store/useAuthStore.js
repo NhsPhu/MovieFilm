@@ -6,10 +6,10 @@ const useAuthStore = create((set) => ({
     user: null,
     isLoading: false,
 
-    login: async (email, password) => {
+    login: async (account, password) => {
         set({ isLoading: true })
         try {
-            const data = await authService.login(email, password)
+            const data = await authService.login(account, password)
             set({ token: data.token, user: data, isLoading: false })
             return data
         } catch (error) {
@@ -18,10 +18,10 @@ const useAuthStore = create((set) => ({
         }
     },
 
-    register: async (email, password, fullName) => {
+    register: async (account, password, fullName) => {
         set({ isLoading: true })
         try {
-            const data = await authService.register(email, password, fullName)
+            const data = await authService.register(account, password, fullName)
             localStorage.setItem('token', data.token)
             set({ token: data.token, user: data, isLoading: false })
             return data

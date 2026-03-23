@@ -19,8 +19,11 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(unique = true)
     private String email;
+
+    @Column(unique = true, length = 15)
+    private String phoneNumber;
 
     @Column(nullable = false)
     private String passwordHash;
@@ -38,6 +41,16 @@ public class User {
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    // Playback Settings
+    @Column(nullable = false)
+    private Boolean autoPlayNext = true;
+
+    @Column(nullable = false)
+    private Boolean previewOnHover = true;
+
+    @Column(nullable = false)
+    private String defaultQuality = "1080p";
 
     public enum UserRole {
         ADMIN, USER

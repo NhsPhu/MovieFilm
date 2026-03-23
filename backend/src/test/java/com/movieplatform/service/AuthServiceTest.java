@@ -60,7 +60,7 @@ class AuthServiceTest {
     void register_Success() {
         // Given
         RegisterRequest request = new RegisterRequest();
-        request.setEmail("newuser@example.com");
+        request.setAccount("newuser@example.com");
         request.setPassword("password123");
         request.setFullName("New User");
 
@@ -89,7 +89,7 @@ class AuthServiceTest {
     void register_DuplicateEmail_ThrowsException() {
         // Given
         RegisterRequest request = new RegisterRequest();
-        request.setEmail("test@example.com");
+        request.setAccount("test@example.com");
         request.setPassword("password123");
         request.setFullName("Test User");
 
@@ -105,14 +105,14 @@ class AuthServiceTest {
     void login_Success() {
         // Given
         LoginRequest request = new LoginRequest();
-        request.setEmail("test@example.com");
+        request.setAccount("test@example.com");
         request.setPassword("password123");
 
         Authentication authentication = mock(Authentication.class);
         when(authentication.getName()).thenReturn("test@example.com");
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(sampleUser));
+        when(userRepository.findByEmailOrPhoneNumber("test@example.com", "test@example.com")).thenReturn(Optional.of(sampleUser));
         when(tokenProvider.generateToken(any(Authentication.class), anyString())).thenReturn("jwt_token");
 
         // When
@@ -128,7 +128,7 @@ class AuthServiceTest {
     void login_WrongCredentials_ThrowsException() {
         // Given
         LoginRequest request = new LoginRequest();
-        request.setEmail("test@example.com");
+        request.setAccount("test@example.com");
         request.setPassword("wrongpassword");
 
         when(authenticationManager.authenticate(any())).thenThrow(new BadCredentialsException("Bad credentials"));
@@ -140,7 +140,7 @@ class AuthServiceTest {
     @Test
     void getCurrentUser_Success() {
         // Given
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(sampleUser));
+        when(userRepository.findByEmailOrPhoneNumber("test@example.com", "test@example.com")).thenReturn(Optional.of(sampleUser));
 
         // When
         var result = authService.getCurrentUser("test@example.com");
@@ -154,7 +154,7 @@ class AuthServiceTest {
     @Test
     void getCurrentUser_NotFound_ThrowsException() {
         // Given
-        when(userRepository.findByEmail("notfound@example.com")).thenReturn(Optional.empty());
+        when(userRepository.findByEmailOrPhoneNumber("notfound@example.com", "notfound@example.com")).thenReturn(Optional.empty());
 
         // When / Then
         assertThrows(ResourceNotFoundException.class, () -> authService.getCurrentUser("notfound@example.com"));
