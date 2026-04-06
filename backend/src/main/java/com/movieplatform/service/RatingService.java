@@ -29,8 +29,8 @@ public class RatingService {
     private MovieRepository movieRepository;
 
     @Transactional
-    public RatingDTO rateMovie(String email, Long movieId, RatingRequest request) {
-        User user = userRepository.findByEmail(email)
+    public RatingDTO rateMovie(String account, Long movieId, RatingRequest request) {
+        User user = userRepository.findByEmailOrPhoneNumber(account, account)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         Movie movie = movieRepository.findById(movieId)
@@ -41,7 +41,10 @@ public class RatingService {
                 .orElse(new Rating());
 
         // Incremental average calculation
-        Double oldScore = rating.getId() != null ? rating.getScore() : null;
+        Double oldScore = null;
+        if (rating.getId() != null) {
+            oldScore = Double.valueOf(rating.getScore());
+        }
         
         rating.setUser(user);
         rating.setMovie(movie);

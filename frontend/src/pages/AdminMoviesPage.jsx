@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { movieService } from '../services/movieService'
+import { adminService } from '../services/adminService'
 
 export default function AdminMoviesPage() {
     const [movies, setMovies] = useState([])
@@ -13,7 +14,7 @@ export default function AdminMoviesPage() {
     }, [])
 
     const loadMovies = () => {
-        movieService.getMovies(0, 50, false).then(data => setMovies(data.content || data || [])).catch(() => setMovies([]))
+        adminService.getMovies(0, 50).then(data => setMovies(data.content || data || [])).catch(() => setMovies([]))
     }
 
     const handleUpload = async (e) => {
@@ -45,13 +46,13 @@ export default function AdminMoviesPage() {
     }
 
     return (
-        <div className="space-y-8">
-            <div className="flex items-center justify-between">
+        <div className="space-y-6 md:space-y-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-4xl font-headline font-extrabold tracking-tighter">Thư Viện Phim</h1>
-                    <p className="text-stone-500 text-sm mt-1">Quản lý thư viện nội dung của bạn.</p>
+                    <h1 className="text-3xl md:text-4xl font-headline font-extrabold tracking-tighter">Thư Viện Phim</h1>
+                    <p className="text-stone-500 text-xs md:text-sm mt-1">Quản lý thư viện nội dung của bạn.</p>
                 </div>
-                <button onClick={() => setShowUpload(!showUpload)} className="flex items-center gap-2 px-5 py-2.5 bg-primary-container text-on-primary-container rounded-lg font-manrope font-bold hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary-container/20">
+                <button onClick={() => setShowUpload(!showUpload)} className="flex items-center justify-center gap-2 px-5 py-2.5 bg-primary-container text-on-primary-container rounded-lg font-manrope font-bold hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary-container/20 w-full md:w-auto">
                     <span className="material-symbols-outlined text-sm">{showUpload ? 'close' : 'add'}</span> {showUpload ? 'Hủy' : 'Thêm Phim'}
                 </button>
             </div>
@@ -105,15 +106,16 @@ export default function AdminMoviesPage() {
 
             {/* Movies Table */}
             <div className="glass-card rounded-xl border border-outline-variant/10 overflow-hidden">
-                <div className="px-8 py-6 flex items-center justify-between border-b border-outline-variant/10">
-                    <h3 className="text-xl font-headline font-bold">Tất Cả Phim ({movies.length})</h3>
-                    <div className="relative">
+                <div className="px-4 md:px-8 py-4 md:py-6 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-outline-variant/10">
+                    <h3 className="text-lg md:text-xl font-headline font-bold">Tất Cả Phim ({movies.length})</h3>
+                    <div className="relative w-full md:w-auto">
                         <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-stone-500 text-sm">search</span>
-                        <input className="bg-surface-container-lowest border-none focus:ring-0 text-sm py-2 pl-10 pr-4 rounded-lg w-64" placeholder="Tìm kiếm phim..."/>
+                        <input className="bg-surface-container-lowest border-none focus:ring-0 text-sm py-2 pl-10 pr-4 rounded-lg w-full md:w-64" placeholder="Tìm kiếm phim..."/>
                     </div>
                 </div>
-                <table className="w-full">
-                    <thead className="border-b border-outline-variant/10">
+                <div className="overflow-x-auto w-full">
+                    <table className="w-full min-w-[900px]">
+                        <thead className="border-b border-outline-variant/10">
                         <tr>
                             <th className="text-left px-8 py-4 text-[10px] uppercase tracking-widest text-stone-500 font-bold">Phim</th>
                             <th className="text-left px-4 py-4 text-[10px] uppercase tracking-widest text-stone-500 font-bold">Đạo Diễn</th>
@@ -150,6 +152,7 @@ export default function AdminMoviesPage() {
                         ))}
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
     )

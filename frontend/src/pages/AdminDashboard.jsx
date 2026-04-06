@@ -3,8 +3,13 @@ import { adminService } from '../services/adminService'
 
 export default function AdminDashboard() {
     const [stats, setStats] = useState({ totalUsers: 0, totalMovies: 0, totalViews: 0, activeNow: 0 })
+    const [recentMovies, setRecentMovies] = useState([])
+    const [recentActivities, setRecentActivities] = useState([])
+
     useEffect(() => {
-        adminService.getStats?.().then(setStats).catch(() => {})
+        adminService.getStats().then(setStats).catch(() => {})
+        adminService.getRecentMovies().then(setRecentMovies).catch(() => {})
+        adminService.getRecentActivities().then(setRecentActivities).catch(() => {})
     }, [])
 
     return (
@@ -68,10 +73,24 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Recent Activity */}
-                <div className="glass-card p-8 rounded-xl border border-outline-variant/10">
+                <div className="glass-card p-8 rounded-xl border border-outline-variant/10 max-h-96 overflow-y-auto">
                     <h3 className="text-xl font-headline font-bold mb-6">Hoạt Động Gần Đây</h3>
                     <div className="space-y-5">
-                        <p className="text-sm text-stone-500 italic">Chưa có hoạt động nào.</p>
+                        {recentActivities.length > 0 ? recentActivities.map((act, i) => (
+                            <div key={i} className="flex gap-4">
+                                <div className="w-8 h-8 rounded-full bg-primary-container/20 text-primary flex items-center justify-center shrink-0">
+                                    <span className="material-symbols-outlined text-sm">history</span>
+                                </div>
+                                <div>
+                                    <p className="text-sm">
+                                        <span className="font-bold">{act.userFullName}</span> {act.action.toLowerCase()} <span className="font-bold text-primary">{act.movieTitle}</span>
+                                    </p>
+                                    <p className="text-xs text-stone-500 mt-1">{new Date(act.time).toLocaleString('vi-VN')}</p>
+                                </div>
+                            </div>
+                        )) : (
+                            <p className="text-sm text-stone-500 italic">Chưa có hoạt động nào.</p>
+                        )}
                     </div>
                 </div>
             </div>
@@ -93,9 +112,19 @@ export default function AdminDashboard() {
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td colSpan="5" className="px-8 py-8 text-center text-sm text-stone-500 italic">Chưa có nội dung nào.</td>
-                        </tr>
+                        {recentMovies.length > 0 ? recentMovies.map((movie, i) => (
+                            <tr key={i} className="border-b border-outline-variant/5 hover:bg-surface-container-high/50 transition-colors">
+                                <td className="px-8 py-4 font-headline font-bold text-sm">{movie.title}</td>
+                                <td className="px-4 py-4 text-xs font-bold text-stone-400">{(movie.genres || []).join(', ')}</td>
+                                <td className="px-4 py-4"><span className="px-3 py-1 bg-green-500/10 text-green-400 text-[10px] font-bold uppercase tracking-widest rounded-full">{movie.status}</span></td>
+                                <td className="px-4 py-4 text-xs font-bold text-stone-300">{movie.viewsCount}</td>
+                                <td className="text-right px-8 py-4 text-xs font-bold text-stone-500">{new Date(movie.createdAt).toLocaleDateString('vi-VN')}</td>
+                            </tr>
+                        )) : (
+                            <tr>
+                                <td colSpan="5" className="px-8 py-8 text-center text-sm text-stone-500 italic">Chưa có nội dung nào.</td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </div>

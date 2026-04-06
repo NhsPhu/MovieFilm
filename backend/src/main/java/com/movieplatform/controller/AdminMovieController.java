@@ -22,6 +22,13 @@ public class AdminMovieController {
     @Autowired
     private VideoTranscodingService videoTranscodingService;
 
+    @GetMapping
+    public ResponseEntity<org.springframework.data.domain.Page<MovieDTO>> getAllMovies(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(movieService.getAllMovies(page, size));
+    }
+
     @PostMapping
     public ResponseEntity<MovieDTO> createMovie(@Valid @RequestBody CreateMovieRequest request) {
         MovieDTO movie = movieService.createMovie(request);

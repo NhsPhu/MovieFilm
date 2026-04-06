@@ -10,13 +10,13 @@ export default function AdminUsersPage() {
     }, [])
 
     return (
-        <div className="space-y-8">
-            <div className="flex items-center justify-between">
+        <div className="space-y-6 md:space-y-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-4xl font-headline font-extrabold tracking-tighter">Quản Lý Người Dùng</h1>
-                    <p className="text-stone-500 text-sm mt-1">Quản lý người dùng và quyền truy cập.</p>
+                    <h1 className="text-3xl md:text-4xl font-headline font-extrabold tracking-tighter">Quản Lý Người Dùng</h1>
+                    <p className="text-stone-500 text-xs md:text-sm mt-1">Quản lý người dùng và quyền truy cập.</p>
                 </div>
-                <button className="flex items-center gap-2 px-5 py-2.5 bg-primary-container text-on-primary-container rounded-lg font-manrope font-bold hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary-container/20">
+                <button className="flex items-center justify-center gap-2 px-5 py-2.5 bg-primary-container text-on-primary-container rounded-lg font-manrope font-bold hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary-container/20 w-full md:w-auto">
                     <span className="material-symbols-outlined text-sm">person_add</span> Thêm Người Dùng
                 </button>
             </div>
@@ -43,14 +43,14 @@ export default function AdminUsersPage() {
             </div>
 
             {/* Search + Bulk Actions */}
-            <div className="flex items-center justify-between gap-4">
-                <div className="relative flex-1 max-w-md">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="relative w-full md:flex-1 md:max-w-md">
                     <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-stone-500">search</span>
                     <input className="w-full bg-surface-container-lowest border-none focus:ring-0 text-sm py-3 pl-12 pr-4 rounded-xl border-b-2 border-transparent focus:border-primary transition-all" placeholder="Tìm kiếm người dùng..." value={search} onChange={e => setSearch(e.target.value)}/>
                 </div>
-                <div className="flex gap-3">
-                    <button className="px-4 py-2.5 text-xs font-bold text-stone-400 border border-outline-variant/20 rounded-lg hover:bg-surface-container-high transition-all">Xuất Dữ Liệu</button>
-                    <select className="bg-surface-container-lowest border border-outline-variant/20 text-sm text-stone-400 rounded-lg px-4 py-2.5 focus:ring-0 focus:border-primary">
+                <div className="flex gap-3 w-full md:w-auto">
+                    <button className="flex-1 md:flex-none px-4 py-2.5 text-xs font-bold text-stone-400 border border-outline-variant/20 rounded-lg hover:bg-surface-container-high transition-all">Xuất</button>
+                    <select className="flex-1 md:flex-none bg-surface-container-lowest border border-outline-variant/20 text-sm text-stone-400 rounded-lg px-4 py-2.5 focus:ring-0 focus:border-primary">
                         <option>Tất Cả Vai Trò</option>
                         <option>Quản Trị</option>
                         <option>Người Dùng</option>
@@ -59,8 +59,8 @@ export default function AdminUsersPage() {
             </div>
 
             {/* Users Table */}
-            <div className="glass-card rounded-xl border border-outline-variant/10 overflow-hidden">
-                <table className="w-full">
+            <div className="glass-card rounded-xl border border-outline-variant/10 overflow-x-auto w-full">
+                <table className="w-full min-w-[800px]">
                     <thead className="border-b border-outline-variant/10">
                         <tr>
                             <th className="text-left px-8 py-4 text-[10px] uppercase tracking-widest text-stone-500 font-bold">Người Dùng</th>

@@ -6,6 +6,7 @@ pluginManagement {
     }
 }
 
+// Sửa từ dependencyResolution thành dependencyResolutionManagement
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
@@ -14,5 +15,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "MovieStreamingApp"
+rootProject.name = "RimCinema"
 include ':app'

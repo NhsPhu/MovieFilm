@@ -30,4 +30,11 @@ public interface MovieRepository extends JpaRepository<Movie, Long> {
            "AND (:genreId IS NULL OR g.id = :genreId) " +
            "AND (:year IS NULL OR m.releaseYear = :year)")
     Page<Movie> findByFilters(@Param("query") String query, @Param("genreId") Integer genreId, @Param("year") Integer year, Pageable pageable);
+
+    Long countByStatus(ProcessingStatus status);
+
+    @Query("SELECT SUM(m.viewsCount) FROM Movie m")
+    Long sumViewsCount();
+
+    List<Movie> findTop5ByOrderByCreatedAtDesc();
 }

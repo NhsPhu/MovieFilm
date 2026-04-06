@@ -50,9 +50,9 @@ public class ProfileService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         SettingsRequest settings = new SettingsRequest();
-        settings.setAutoPlayNext(user.getAutoPlayNext());
-        settings.setPreviewOnHover(user.getPreviewOnHover());
-        settings.setDefaultQuality(user.getDefaultQuality());
+        settings.setAutoPlayNext(user.getAutoPlayNext() != null ? user.getAutoPlayNext() : true);
+        settings.setPreviewOnHover(user.getPreviewOnHover() != null ? user.getPreviewOnHover() : true);
+        settings.setDefaultQuality(user.getDefaultQuality() != null ? user.getDefaultQuality() : "1080p");
 
         return settings;
     }
