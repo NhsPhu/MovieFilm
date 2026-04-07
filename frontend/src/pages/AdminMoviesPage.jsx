@@ -5,7 +5,18 @@ import { adminService } from '../services/adminService'
 export default function AdminMoviesPage() {
     const [movies, setMovies] = useState([])
     const [showUpload, setShowUpload] = useState(false)
-    const [uploadData, setUploadData] = useState({ title: '', description: '', director: '', releaseYear: '', duration: '', genreIds: '' })
+    const [uploadData, setUploadData] = useState({ 
+        title: '', 
+        description: '', 
+        director: '', 
+        cast: '',
+        releaseYear: '', 
+        duration: '', 
+        genreIds: '',
+        trailerUrl: '',
+        language: '',
+        ageRating: ''
+    })
     const [files, setFiles] = useState({ video: null, poster: null, backdrop: null })
     const [uploading, setUploading] = useState(false)
 
@@ -25,15 +36,21 @@ export default function AdminMoviesPage() {
             formData.append('title', uploadData.title)
             formData.append('description', uploadData.description)
             formData.append('director', uploadData.director)
+            formData.append('cast', uploadData.cast)
             formData.append('releaseYear', uploadData.releaseYear)
             formData.append('duration', uploadData.duration)
+            formData.append('trailerUrl', uploadData.trailerUrl)
+            formData.append('language', uploadData.language)
+            formData.append('ageRating', uploadData.ageRating)
+            
             if (uploadData.genreIds) uploadData.genreIds.split(',').forEach(id => formData.append('genreIds', id.trim()))
             if (files.video) formData.append('videoFile', files.video)
             if (files.poster) formData.append('posterFile', files.poster)
             if (files.backdrop) formData.append('backdropFile', files.backdrop)
+            
             await movieService.createMovie(formData)
             setShowUpload(false)
-            setUploadData({ title: '', description: '', director: '', releaseYear: '', duration: '', genreIds: '' })
+            setUploadData({ title: '', description: '', director: '', cast: '', releaseYear: '', duration: '', genreIds: '', trailerUrl: '', language: '', ageRating: '' })
             setFiles({ video: null, poster: null, backdrop: null })
             loadMovies()
         } catch (err) { console.error('Upload failed:', err) }
@@ -71,6 +88,10 @@ export default function AdminMoviesPage() {
                             <input className="w-full bg-surface-container-lowest border-0 border-b border-outline-variant focus:border-primary focus:ring-0 py-3 px-1 text-sm" placeholder="Tên đạo diễn" value={uploadData.director} onChange={e => setUploadData({...uploadData, director: e.target.value})}/>
                         </div>
                         <div>
+                            <label className="block text-[10px] uppercase tracking-widest text-stone-500 font-bold mb-2">Diễn Viên</label>
+                            <input className="w-full bg-surface-container-lowest border-0 border-b border-outline-variant focus:border-primary focus:ring-0 py-3 px-1 text-sm" placeholder="Diễn viên 1, Diễn viên 2" value={uploadData.cast} onChange={e => setUploadData({...uploadData, cast: e.target.value})}/>
+                        </div>
+                        <div>
                             <label className="block text-[10px] uppercase tracking-widest text-stone-500 font-bold mb-2">Năm Phát Hành</label>
                             <input className="w-full bg-surface-container-lowest border-0 border-b border-outline-variant focus:border-primary focus:ring-0 py-3 px-1 text-sm" type="number" placeholder="2024" value={uploadData.releaseYear} onChange={e => setUploadData({...uploadData, releaseYear: e.target.value})}/>
                         </div>
@@ -78,22 +99,38 @@ export default function AdminMoviesPage() {
                             <label className="block text-[10px] uppercase tracking-widest text-stone-500 font-bold mb-2">Thời Lượng (phút)</label>
                             <input className="w-full bg-surface-container-lowest border-0 border-b border-outline-variant focus:border-primary focus:ring-0 py-3 px-1 text-sm" type="number" placeholder="120" value={uploadData.duration} onChange={e => setUploadData({...uploadData, duration: e.target.value})}/>
                         </div>
-                        <div className="md:col-span-2">
-                            <label className="block text-[10px] uppercase tracking-widest text-stone-500 font-bold mb-2">Mô Tả</label>
-                            <textarea className="w-full bg-surface-container-lowest border-0 border-b border-outline-variant focus:border-primary focus:ring-0 py-3 px-1 text-sm resize-none h-24" placeholder="Mô tả phim..." value={uploadData.description} onChange={e => setUploadData({...uploadData, description: e.target.value})}/>
+                        <div>
+                            <label className="block text-[10px] uppercase tracking-widest text-stone-500 font-bold mb-2">Độ Tuổi (Age Rating)</label>
+                            <input className="w-full bg-surface-container-lowest border-0 border-b border-outline-variant focus:border-primary focus:ring-0 py-3 px-1 text-sm" placeholder="13+, 18+, TV-MA" value={uploadData.ageRating} onChange={e => setUploadData({...uploadData, ageRating: e.target.value})}/>
+                        </div>
+                        <div>
+                            <label className="block text-[10px] uppercase tracking-widest text-stone-500 font-bold mb-2">Ngôn Ngữ</label>
+                            <input className="w-full bg-surface-container-lowest border-0 border-b border-outline-variant focus:border-primary focus:ring-0 py-3 px-1 text-sm" placeholder="Tiếng Việt, English" value={uploadData.language} onChange={e => setUploadData({...uploadData, language: e.target.value})}/>
                         </div>
                         <div>
                             <label className="block text-[10px] uppercase tracking-widest text-stone-500 font-bold mb-2">ID Thể Loại (cách bằng dấu phẩy)</label>
                             <input className="w-full bg-surface-container-lowest border-0 border-b border-outline-variant focus:border-primary focus:ring-0 py-3 px-1 text-sm" placeholder="1, 2, 3" value={uploadData.genreIds} onChange={e => setUploadData({...uploadData, genreIds: e.target.value})}/>
                         </div>
-                        <div></div>
+                        <div className="md:col-span-2">
+                            <label className="block text-[10px] uppercase tracking-widest text-stone-500 font-bold mb-2">Trailer URL (Youtube...)</label>
+                            <input className="w-full bg-surface-container-lowest border-0 border-b border-outline-variant focus:border-primary focus:ring-0 py-3 px-1 text-sm" placeholder="https://youtube.com/..." value={uploadData.trailerUrl} onChange={e => setUploadData({...uploadData, trailerUrl: e.target.value})}/>
+                        </div>
+                        <div className="md:col-span-2">
+                            <label className="block text-[10px] uppercase tracking-widest text-stone-500 font-bold mb-2">Mô Tả</label>
+                            <textarea className="w-full bg-surface-container-lowest border-0 border-b border-outline-variant focus:border-primary focus:ring-0 py-3 px-1 text-sm resize-none h-24" placeholder="Mô tả phim..." value={uploadData.description} onChange={e => setUploadData({...uploadData, description: e.target.value})}/>
+                        </div>
+                        
                         <div>
                             <label className="block text-[10px] uppercase tracking-widest text-stone-500 font-bold mb-2">Tệp Video</label>
                             <input type="file" accept="video/*" className="text-sm text-stone-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-surface-container-high file:text-primary hover:file:bg-surface-container-highest" onChange={e => setFiles({...files, video: e.target.files[0]})}/>
                         </div>
                         <div>
-                            <label className="block text-[10px] uppercase tracking-widest text-stone-500 font-bold mb-2">Ảnh Bìa Phim</label>
+                            <label className="block text-[10px] uppercase tracking-widest text-stone-500 font-bold mb-2">Ảnh Bìa Phim (Poster)</label>
                             <input type="file" accept="image/*" className="text-sm text-stone-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-surface-container-high file:text-primary hover:file:bg-surface-container-highest" onChange={e => setFiles({...files, poster: e.target.files[0]})}/>
+                        </div>
+                        <div>
+                            <label className="block text-[10px] uppercase tracking-widest text-stone-500 font-bold mb-2">Ảnh Nền Phim (Backdrop)</label>
+                            <input type="file" accept="image/*" className="text-sm text-stone-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-surface-container-high file:text-primary hover:file:bg-surface-container-highest" onChange={e => setFiles({...files, backdrop: e.target.files[0]})}/>
                         </div>
                         <div className="md:col-span-2 flex justify-end">
                             <button type="submit" disabled={uploading} className="flex items-center gap-2 px-8 py-3 bg-primary-container text-on-primary-container rounded-lg font-manrope font-bold hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary-container/20 disabled:opacity-50">
