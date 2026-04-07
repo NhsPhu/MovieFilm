@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom'
 import useAuthStore from '../store/useAuthStore'
 import { historyService } from '../services/historyService'
 import { profileService } from '../services/profileService'
+import { watchlistService } from '../services/watchlistService'
 
 export default function ProfilePage() {
     const { user, logout, fetchCurrentUser } = useAuthStore()
     const [activeTab, setActiveTab] = useState('history')
     const [watchHistory, setWatchHistory] = useState([])
+    const [myList, setMyList] = useState([])
 
     // Profile Settings States
     const [isEditingContact, setIsEditingContact] = useState(false)
@@ -24,13 +26,15 @@ export default function ProfilePage() {
     const isPhone = /^\d+$/.test(newContact)
 
     useEffect(() => {
-        historyService.getWatchHistory()
-            .then(data => setWatchHistory(data || []))
-            .catch(() => setWatchHistory([]))
-    }, [])
-
-    useEffect(() => {
-        if (activeTab === 'settings') {
+        if (activeTab === 'history') {
+            historyService.getWatchHistory()
+                .then(data => setWatchHistory(data || []))
+                .catch(() => setWatchHistory([]))
+        } else if (activeTab === 'mylist') {
+            watchlistService.getWatchlist()
+                .then(data => setMyList(data || []))
+                .catch(() => setMyList([]))
+        } else if (activeTab === 'settings') {
             profileService.getSettings()
                 .then(data => setSettings(data))
                 .catch(console.error)
@@ -73,9 +77,13 @@ export default function ProfilePage() {
         }
     }
 
-    const handleClearHistory = () => {
-        // Mock clear history since backend doesn't have an endpoint yet
-        setWatchHistory([])
+    const handleClearHistory = async () => {
+        try {
+            await historyService.clearHistory()
+            setWatchHistory([])
+        } catch (error) {
+            console.error("Failed to clear history", error)
+        }
     }
 
     const tabs = [
@@ -198,14 +206,33 @@ export default function ProfilePage() {
             {activeTab === 'mylist' && (
                 <section className="mb-20">
                     <h2 className="font-headline text-2xl font-bold text-on-surface mb-8">Danh Sách Của Tôi</h2>
-                    <div className="text-center py-20">
-                        <span className="material-symbols-outlined text-6xl text-surface-container-highest mb-4 block">bookmark_border</span>
-                        <p className="text-on-surface-variant text-lg mb-2">Danh sách của bạn đang trống</p>
-                        <p className="text-on-surface-variant/60 text-sm mb-6">Lưu phim để xem sau</p>
-                        <Link to="/" className="px-8 py-3 bg-primary-container text-on-primary-container font-headline font-bold rounded-lg hover:scale-105 transition-all inline-block">
-                            Khám Phá Phim
-                        </Link>
-                    </div>
+                    {myList.length > 0 ? (
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                            {myList.map((movie) => (
+                                <Link key={movie.id} to={`/movie/${movie.id}`} className="group relative rounded-xl overflow-hidden bg-surface-container hover:scale-105 transition-all">
+                                    <div className="aspect-[2/3]">
+                                        <img src={movie.posterUrl || 'https://via.placeholder.com/400x600?text=No+Image'} alt={movie.title} className="w-full h-full object-cover" />
+                                    </div>
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-4 flex flex-col justify-end">
+                                        <h3 className="font-headline font-bold text-on-surface line-clamp-1">{movie.title}</h3>
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <span className="material-symbols-outlined text-primary-container text-sm" style={{fontVariationSettings: "'FILL' 1"}}>star</span>
+                                            <span className="text-xs font-bold text-on-surface">{movie.rating || 'N/A'}</span>
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-20">
+                            <span className="material-symbols-outlined text-6xl text-surface-container-highest mb-4 block">bookmark_border</span>
+                            <p className="text-on-surface-variant text-lg mb-2">Danh sách của bạn đang trống</p>
+                            <p className="text-on-surface-variant/60 text-sm mb-6">Lưu phim để xem sau</p>
+                            <Link to="/" className="px-8 py-3 bg-primary-container text-on-primary-container font-headline font-bold rounded-lg hover:scale-105 transition-all inline-block">
+                                Khám Phá Phim
+                            </Link>
+                        </div>
+                    )}
                 </section>
             )}
 

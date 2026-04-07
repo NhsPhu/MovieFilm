@@ -10,6 +10,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/history")
@@ -46,5 +47,12 @@ public class WatchHistoryController {
         }
 
         return ResponseEntity.ok(history);
+    }
+
+    @DeleteMapping
+    public ResponseEntity<Map<String, String>> clearHistory(Authentication authentication) {
+        String email = authentication.getName();
+        watchHistoryService.clearHistory(email);
+        return ResponseEntity.ok(Map.of("message", "Watch history cleared"));
     }
 }

@@ -30,7 +30,8 @@ public class MovieController {
 
     @GetMapping("/{id}")
     public ResponseEntity<MovieDTO> getMovieById(@PathVariable Long id) {
-        MovieDTO movie = movieService.getMovieById(id);
+        // Atomic view increment + return movie
+        MovieDTO movie = movieService.getMovieByIdAndIncrementViews(id);
         return ResponseEntity.ok(movie);
     }
 
@@ -66,8 +67,16 @@ public class MovieController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "newest") String sortBy) {
-            
+
         Page<MovieDTO> movies = movieService.searchAndFilterMovies(q, genreId, year, page, size, sortBy);
         return ResponseEntity.ok(movies);
+    }
+
+    @GetMapping("/{id}/related")
+    public ResponseEntity<List<MovieDTO>> getRelatedMovies(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "6") int limit) {
+        List<MovieDTO> related = movieService.getRelatedMovies(id, limit);
+        return ResponseEntity.ok(related);
     }
 }

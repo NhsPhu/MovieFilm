@@ -42,9 +42,9 @@ public class WatchHistoryService {
                 .orElse(new WatchHistory());
 
         boolean shouldSave = false;
-        
+
         // Throttling: only update if time difference is >= 10s, or if the movie is completed
-        if (history.getId() == null || 
+        if (history.getId() == null ||
             Math.abs(request.getCurrentTime() - history.getCurrentTimeSec()) >= 10) {
             shouldSave = true;
         }
@@ -64,9 +64,13 @@ public class WatchHistoryService {
 
         if (movie.getDurationSec() != null && request.getCurrentTime() >= movie.getDurationSec() * 0.95) {
             if (!Boolean.TRUE.equals(history.getIsFinished())) {
-                shouldSave = true; // force save if status changes
+                shouldSave = true;
             }
             history.setIsFinished(true);
+        } else {
+            if (history.getIsFinished() == null) {
+                history.setIsFinished(false);
+            }
         }
 
         if (shouldSave) {
@@ -75,7 +79,6 @@ public class WatchHistoryService {
         }
 
         return convertToDTO(history);
-
     }
 
     public List<WatchHistoryDTO> getUserHistory(String email) {
@@ -103,6 +106,13 @@ public class WatchHistoryService {
         }
 
         return convertToDTO(history);
+    }
+
+    @Transactional
+    public void clearHistory(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        watchHistoryRepository.deleteByUserId(user.getId());
     }
 
     private WatchHistoryDTO convertToDTO(WatchHistory history) {

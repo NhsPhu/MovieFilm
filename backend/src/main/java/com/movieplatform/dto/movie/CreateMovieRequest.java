@@ -19,9 +19,21 @@ public class CreateMovieRequest {
 
     private String posterUrl;
 
+    private String backdropUrl;
+
+    private String trailerUrl;
+
     private Integer releaseYear;
 
     private Integer durationSec;
+
+    private String director;
+
+    private String cast;
+
+    private String language;
+
+    private String ageRating;
 
     @NotNull(message = "At least one genre is required")
     private List<Integer> genreIds;

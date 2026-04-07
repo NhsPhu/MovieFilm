@@ -5,11 +5,15 @@ USE moviedb;
 -- Users Table
 CREATE TABLE users (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    email VARCHAR(255) NOT NULL UNIQUE,
+    email VARCHAR(255) UNIQUE,
+    phone_number VARCHAR(15) UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     full_name VARCHAR(255) NOT NULL,
     role ENUM('ADMIN', 'USER') NOT NULL DEFAULT 'USER',
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    auto_play_next BOOLEAN NOT NULL DEFAULT TRUE,
+    preview_on_hover BOOLEAN NOT NULL DEFAULT TRUE,
+    default_quality VARCHAR(20) NOT NULL DEFAULT '1080p',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_email (email),
     INDEX idx_role (role)
@@ -21,18 +25,24 @@ CREATE TABLE genres (
     slug VARCHAR(100) NOT NULL UNIQUE,
     INDEX idx_slug (slug)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
--- Movies Table
+-- Movies Table (with extended metadata)
 CREATE TABLE movies (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     title VARCHAR(500) NOT NULL,
     description TEXT,
     poster_url VARCHAR(500),
+    backdrop_url VARCHAR(500),
+    trailer_url VARCHAR(500),
     release_year INT,
     folder_path VARCHAR(500) NOT NULL,
     duration_sec INT,
     views_count BIGINT NOT NULL DEFAULT 0,
     avg_rating DECIMAL(3, 2) DEFAULT 0.00,
     status ENUM('PROCESSING', 'READY', 'FAILED') NOT NULL DEFAULT 'PROCESSING',
+    director VARCHAR(255),
+    cast TEXT,
+    language VARCHAR(100) DEFAULT 'Tiếng Việt',
+    age_rating VARCHAR(20) DEFAULT 'T18',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_status (status),
     INDEX idx_views (views_count DESC),
@@ -66,16 +76,24 @@ CREATE TABLE ratings (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     user_id BIGINT NOT NULL,
     movie_id BIGINT NOT NULL,
-    score INT NOT NULL CHECK (
-        score >= 1
-        AND score <= 5
-    ),
+    score INT NOT NULL CHECK (score >= 1 AND score <= 5),
     review TEXT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uq_user_movie_rating (user_id, movie_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (movie_id) REFERENCES movies(id) ON DELETE CASCADE,
     INDEX idx_movie_score (movie_id, score)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+-- Watchlist Table
+CREATE TABLE watchlist (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    movie_id BIGINT NOT NULL,
+    added_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_user_movie_watchlist (user_id, movie_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (movie_id) REFERENCES movies(id) ON DELETE CASCADE,
+    INDEX idx_user_watchlist (user_id, added_at DESC)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 -- Insert Sample Genres
 INSERT INTO genres (name, slug)
@@ -90,7 +108,6 @@ VALUES ('Action', 'action'),
     ('Documentary', 'documentary'),
     ('Fantasy', 'fantasy');
 -- Insert Admin User (password: admin123)
--- Note: This is a bcrypt hash of "admin123" - should be changed in production
 INSERT INTO users (email, password_hash, full_name, role)
 VALUES (
         'admin@movieplatform.com',

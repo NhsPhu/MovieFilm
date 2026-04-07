@@ -3,6 +3,8 @@ import { useParams, Link } from 'react-router-dom'
 import Hls from 'hls.js'
 import { movieService } from '../services/movieService'
 import { ratingService } from '../services/ratingService'
+import { historyService } from '../services/historyService'
+import { watchlistService } from '../services/watchlistService'
 import useAuthStore from '../store/useAuthStore'
 
 export default function WatchPage() {
@@ -15,13 +17,45 @@ export default function WatchPage() {
     const [myReview, setMyReview] = useState('')
     const [isSubmitting, setIsSubmitting] = useState(false)
     
+    // Watchlist state
+    const [isInWatchlist, setIsInWatchlist] = useState(false)
+    const [isWatchlistLoading, setIsWatchlistLoading] = useState(false)
+
+    // Progress State
+    const hasSeekedInitProgress = useRef(false)
+    
     const { user } = useAuthStore()
 
     const videoRef = useRef(null)
     const hlsRef = useRef(null)
+    const progressIntervalRef = useRef(null)
 
     const fetchRatings = () => {
         ratingService.getMovieRatings(id).then(setRatings).catch(console.error)
+    }
+
+    const checkWatchlistStatus = () => {
+        if (!user) return
+        watchlistService.checkInWatchlist(id)
+            .then(data => setIsInWatchlist(data.inWatchlist))
+            .catch(console.error)
+    }
+
+    const toggleWatchlist = async () => {
+        if (!user) return alert("Vui lòng đăng nhập để thêm phim vào danh sách.")
+        setIsWatchlistLoading(true)
+        try {
+            if (isInWatchlist) {
+                await watchlistService.removeFromWatchlist(id)
+                setIsInWatchlist(false)
+            } else {
+                await watchlistService.addToWatchlist(id)
+                setIsInWatchlist(true)
+            }
+        } catch (error) {
+            console.error("Lỗi khi cập nhật danh sách", error)
+        }
+        setIsWatchlistLoading(false)
     }
 
     useEffect(() => {
@@ -31,7 +65,8 @@ export default function WatchPage() {
             setRelated(all.filter(m => String(m.id) !== String(id)).slice(0, 4))
         }).catch(() => {})
         fetchRatings()
-    }, [id])
+        checkWatchlistStatus()
+    }, [id, user])
 
     const handleSubmitReview = async () => {
         if (!user) return alert('Vui lòng đăng nhập để đánh giá.')
@@ -48,6 +83,56 @@ export default function WatchPage() {
         }
         setIsSubmitting(false)
     }
+
+    // Video Tracking hook
+    useEffect(() => {
+        const video = videoRef.current
+        if (!video || !user) return
+
+        const updateProgress = () => {
+            const currentPosition = Math.floor(video.currentTime)
+            if (currentPosition > 0 && !video.paused) {
+                historyService.updateWatchHistory(id, currentPosition).catch(() => {})
+            }
+        }
+
+        // Send progress every 10 seconds while playing
+        video.addEventListener('play', () => {
+            progressIntervalRef.current = setInterval(updateProgress, 10000)
+        })
+
+        video.addEventListener('pause', () => {
+            clearInterval(progressIntervalRef.current)
+            updateProgress() // Final update on pause
+        })
+
+        video.addEventListener('ended', () => {
+            clearInterval(progressIntervalRef.current)
+            updateProgress()
+        })
+
+        return () => {
+            if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
+            video.removeEventListener('play', updateProgress)
+            video.removeEventListener('pause', updateProgress)
+            video.removeEventListener('ended', updateProgress)
+        }
+    }, [id, user])
+
+    // Fetch initial progress to seek
+    useEffect(() => {
+        if (!user || hasSeekedInitProgress.current) return
+        historyService.getMovieProgress(id)
+            .then(data => {
+                const initTime = data.currentTimeSec
+                if (initTime && initTime > 5 && videoRef.current) {
+                    videoRef.current.currentTime = initTime
+                    hasSeekedInitProgress.current = true
+                }
+            })
+            .catch(() => {})
+    }, [id, user])
+
 
     // HLS player setup — always try the stream URL
     useEffect(() => {
@@ -163,9 +248,18 @@ export default function WatchPage() {
                                 <h1 className="font-headline text-3xl md:text-4xl font-extrabold tracking-tighter line-clamp-2">{m.title || 'Movie Title'}</h1>
                             </div>
                             <div className="flex gap-3 shrink-0">
-                                <button className="h-10 px-5 rounded-full bg-surface-container-high text-on-surface font-headline font-bold text-sm hover:bg-surface-bright transition-all flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-lg">add</span>
-                                    Danh Sách
+                                <button
+                                    onClick={toggleWatchlist} 
+                                    disabled={isWatchlistLoading}
+                                    className={`h-10 px-5 rounded-full font-headline font-bold text-sm transition-all flex items-center gap-2 ${
+                                        isInWatchlist 
+                                            ? 'bg-primary text-white hover:bg-primary/90' 
+                                            : 'bg-surface-container-high text-on-surface hover:bg-surface-bright'
+                                    }`}>
+                                    <span className="material-symbols-outlined text-lg" style={{fontVariationSettings: "'FILL' " + (isInWatchlist ? '1' : '0')}}>
+                                        {isInWatchlist ? 'check' : 'add'}
+                                    </span>
+                                    {isInWatchlist ? 'Đã Thêm' : 'Danh Sách'}
                                 </button>
                                 <button className="h-10 px-5 rounded-full bg-tertiary-container text-white font-headline font-bold text-sm hover:brightness-110 transition-all flex items-center gap-2 shadow-lg shadow-tertiary-container/20">
                                     <span className="material-symbols-outlined text-lg" style={{fontVariationSettings: "'FILL' 1"}}>thumb_up</span>
@@ -188,6 +282,10 @@ export default function WatchPage() {
                                 <div>
                                     <h4 className="text-xs uppercase tracking-widest text-primary font-bold mb-1">Đạo Diễn</h4>
                                     <p className="text-sm text-on-surface">{m.director || 'Chưa rõ'}</p>
+                                </div>
+                                <div>
+                                    <h4 className="text-xs uppercase tracking-widest text-primary font-bold mb-1">Diễn Viên</h4>
+                                    <p className="text-sm text-on-surface">{m.cast || 'Chưa rõ'}</p>
                                 </div>
                                 <div>
                                     <h4 className="text-xs uppercase tracking-widest text-primary font-bold mb-1">Năm</h4>

@@ -29,6 +29,10 @@ public class Movie {
 
     private String posterUrl;
 
+    private String backdropUrl;
+
+    private String trailerUrl;
+
     private Integer releaseYear;
 
     @Column(nullable = false)
@@ -40,6 +44,15 @@ public class Movie {
     private Long viewsCount = 0L;
 
     private Double avgRating = 0.0;
+
+    private String director;
+
+    @Column(columnDefinition = "TEXT")
+    private String cast;
+
+    private String language = "Tiếng Việt";
+
+    private String ageRating = "T18";
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

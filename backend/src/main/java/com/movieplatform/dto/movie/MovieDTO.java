@@ -15,6 +15,8 @@ public class MovieDTO {
     private String title;
     private String description;
     private String posterUrl;
+    private String backdropUrl;
+    private String trailerUrl;
     private Integer releaseYear;
     private Integer durationSec;
     private Long viewsCount;
@@ -22,4 +24,8 @@ public class MovieDTO {
     private String status;
     private List<String> genres;
     private LocalDateTime createdAt;
+    private String director;
+    private String cast;
+    private String language;
+    private String ageRating;
 }

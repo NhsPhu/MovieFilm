@@ -8,6 +8,8 @@ import com.movieplatform.exception.ResourceNotFoundException;
 import com.movieplatform.repository.GenreRepository;
 import com.movieplatform.repository.MovieRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -31,23 +33,32 @@ public class MovieService {
     private GenreRepository genreRepository;
 
     @Transactional
+    @CacheEvict(value = {"movies", "popularMovies"}, allEntries = true)
     public MovieDTO createMovie(CreateMovieRequest request) {
         Movie movie = new Movie();
         movie.setTitle(request.getTitle());
         movie.setDescription(request.getDescription());
         movie.setPosterUrl(request.getPosterUrl());
+        movie.setBackdropUrl(request.getBackdropUrl());
+        movie.setTrailerUrl(request.getTrailerUrl());
         movie.setReleaseYear(request.getReleaseYear());
         movie.setDurationSec(request.getDurationSec());
+        movie.setDirector(request.getDirector());
+        movie.setCast(request.getCast());
+        movie.setLanguage(request.getLanguage() != null ? request.getLanguage() : "Tiếng Việt");
+        movie.setAgeRating(request.getAgeRating() != null ? request.getAgeRating() : "T18");
         movie.setStatus(Movie.ProcessingStatus.PROCESSING);
 
         String folderPath = "movies/" + UUID.randomUUID().toString();
         movie.setFolderPath(folderPath);
 
         Set<Genre> genres = new HashSet<>();
-        for (Integer genreId : request.getGenreIds()) {
-            Genre genre = genreRepository.findById(genreId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Genre not found"));
-            genres.add(genre);
+        if (request.getGenreIds() != null) {
+            for (Integer genreId : request.getGenreIds()) {
+                Genre genre = genreRepository.findById(genreId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Genre not found"));
+                genres.add(genre);
+            }
         }
         movie.setGenres(genres);
 
@@ -67,16 +78,26 @@ public class MovieService {
                 .map(this::convertToDTO);
     }
 
+    @Cacheable(value = "movies", key = "#id")
     public MovieDTO getMovieById(Long id) {
         Movie movie = movieRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Movie not found"));
 
-        movie.setViewsCount(movie.getViewsCount() + 1);
-        movieRepository.save(movie);
-
+        // Increment views — do it outside cache
         return convertToDTO(movie);
     }
 
+    @Transactional
+    public MovieDTO getMovieByIdAndIncrementViews(Long id) {
+        Movie movie = movieRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Movie not found"));
+        // Use modifying query to avoid race condition
+        movieRepository.incrementViewsCount(id);
+        movie.setViewsCount(movie.getViewsCount() + 1);
+        return convertToDTO(movie);
+    }
+
+    @Cacheable(value = "popularMovies", key = "#limit")
     public List<MovieDTO> getPopularMovies(int limit) {
         Pageable pageable = PageRequest.of(0, limit);
         return movieRepository.findPopularMovies(pageable)
@@ -118,11 +139,10 @@ public class MovieService {
                     direction = Sort.Direction.ASC;
                     break;
                 default:
-                    // default sort by createdAt desc
                     break;
             }
         }
-        
+
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortProperty));
         return movieRepository.findByFilters(query, genreId, year, pageable).map(this::convertToDTO);
     }
@@ -132,16 +152,14 @@ public class MovieService {
                 .orElseThrow(() -> new ResourceNotFoundException("Movie not found"));
 
         if (movie.getGenres().isEmpty()) {
-            return List.of(); // return empty list if no genres
+            return List.of();
         }
 
         List<Integer> genreIds = movie.getGenres().stream()
                 .map(Genre::getId)
                 .collect(Collectors.toList());
 
-        Pageable pageable = PageRequest.of(0, limit);
-        // Exclude the current movie by filtering it out in memory or custom query
-        // Currently, findByGenreIds might fetch the current movie too.
+        Pageable pageable = PageRequest.of(0, limit + 1);
         List<Movie> related = movieRepository.findByGenreIds(genreIds, pageable).getContent();
 
         return related.stream()
@@ -152,6 +170,7 @@ public class MovieService {
     }
 
     @Transactional
+    @CacheEvict(value = {"movies", "popularMovies"}, allEntries = true)
     public MovieDTO updateMovie(Long id, CreateMovieRequest request) {
         Movie movie = movieRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Movie not found"));
@@ -159,8 +178,14 @@ public class MovieService {
         movie.setTitle(request.getTitle());
         movie.setDescription(request.getDescription());
         movie.setPosterUrl(request.getPosterUrl());
+        if (request.getBackdropUrl() != null) movie.setBackdropUrl(request.getBackdropUrl());
+        if (request.getTrailerUrl() != null) movie.setTrailerUrl(request.getTrailerUrl());
         movie.setReleaseYear(request.getReleaseYear());
         movie.setDurationSec(request.getDurationSec());
+        if (request.getDirector() != null) movie.setDirector(request.getDirector());
+        if (request.getCast() != null) movie.setCast(request.getCast());
+        if (request.getLanguage() != null) movie.setLanguage(request.getLanguage());
+        if (request.getAgeRating() != null) movie.setAgeRating(request.getAgeRating());
 
         if (request.getGenreIds() != null) {
             Set<Genre> genres = new HashSet<>();
@@ -185,6 +210,7 @@ public class MovieService {
     }
 
     @Transactional
+    @CacheEvict(value = {"movies", "popularMovies"}, allEntries = true)
     public void deleteMovie(Long id) {
         Movie movie = movieRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Movie not found"));
@@ -196,17 +222,24 @@ public class MovieService {
                 .map(Genre::getName)
                 .collect(Collectors.toList());
 
-        return new MovieDTO(
-                movie.getId(),
-                movie.getTitle(),
-                movie.getDescription(),
-                movie.getPosterUrl(),
-                movie.getReleaseYear(),
-                movie.getDurationSec(),
-                movie.getViewsCount(),
-                movie.getAvgRating(),
-                movie.getStatus().name(),
-                genreNames,
-                movie.getCreatedAt());
+        MovieDTO dto = new MovieDTO();
+        dto.setId(movie.getId());
+        dto.setTitle(movie.getTitle());
+        dto.setDescription(movie.getDescription());
+        dto.setPosterUrl(movie.getPosterUrl());
+        dto.setBackdropUrl(movie.getBackdropUrl());
+        dto.setTrailerUrl(movie.getTrailerUrl());
+        dto.setReleaseYear(movie.getReleaseYear());
+        dto.setDurationSec(movie.getDurationSec());
+        dto.setViewsCount(movie.getViewsCount());
+        dto.setAvgRating(movie.getAvgRating());
+        dto.setStatus(movie.getStatus().name());
+        dto.setGenres(genreNames);
+        dto.setCreatedAt(movie.getCreatedAt());
+        dto.setDirector(movie.getDirector());
+        dto.setCast(movie.getCast());
+        dto.setLanguage(movie.getLanguage());
+        dto.setAgeRating(movie.getAgeRating());
+        return dto;
     }
 }

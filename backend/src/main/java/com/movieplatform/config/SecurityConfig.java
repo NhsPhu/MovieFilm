@@ -67,6 +67,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/stream/**").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/watchlist/**").authenticated()
+                        .requestMatchers("/history/**").authenticated()
                         .anyRequest().authenticated());
 
         http.authenticationProvider(authenticationProvider());

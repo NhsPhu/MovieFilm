@@ -1,16 +1,51 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { movieService } from '../services/movieService'
+import { historyService } from '../services/historyService'
+import useAuthStore from '../store/useAuthStore'
 
 export default function HomePage() {
+    const { user } = useAuthStore()
     const [movies, setMovies] = useState([])
+    const [watchHistory, setWatchHistory] = useState([])
+
     useEffect(() => {
         movieService.getMovies(0, 20).then(data => setMovies(data.content || data || [])).catch(() => setMovies([]))
-    }, [])
+        
+        if (user) {
+            historyService.getWatchHistory()
+                .then(data => {
+                    // Filter out finished movies for continue watching
+                    const inProgress = (data || []).filter(item => !item.isFinished && item.currentTimeSec > 0)
+                    setWatchHistory(inProgress.slice(0, 3)) // top 3
+                })
+                .catch(() => setWatchHistory([]))
+        } else {
+            setWatchHistory([])
+        }
+    }, [user])
+
     const hero = movies[0]
     const trending = movies.slice(0, 5)
     const topRated = movies.slice(0, 6)
-    const continueWatching = movies.filter(m => m.id !== hero?.id).slice(3, 6)
+
+    // Fallback if no real history
+    const continueWatching = watchHistory.length > 0 
+        ? watchHistory 
+        : movies.filter(m => m.id !== hero?.id).slice(3, 6).map(m => ({
+            movieId: m.id,
+            movieTitle: m.title,
+            posterUrl: m.posterUrl,
+            backdropUrl: m.backdropUrl,
+            currentTimeSec: Math.random() * 2000, 
+            isFinished: false,
+            // Add a mock property to distinguish mock from real
+            isMock: true 
+        }))
+
+    const getProgressPercent = (item) => {
+        return item.isFinished ? 100 : Math.min(Math.floor((item.currentTimeSec / (120*60)) * 100) + 5, 95)
+    }
 
     return (
         <>
@@ -81,33 +116,33 @@ export default function HomePage() {
                     </div>
                     <div className="flex flex-col md:grid md:grid-cols-3 gap-4 md:gap-6 h-auto md:h-[400px]">
                         {continueWatching[0] && (
-                        <Link to={`/watch/${continueWatching[0].id}`} className="group relative col-span-1 md:col-span-2 aspect-video md:aspect-auto bg-surface-container rounded-xl overflow-hidden hover:ring-2 ring-outline-variant/40 transition-all cursor-pointer block">
-                            <img alt={continueWatching[0].title || "Movie"} className="w-full h-full object-cover" src={continueWatching[0].posterUrl || continueWatching[0].backdropUrl || ""}/>
+                        <Link to={`/watch/${continueWatching[0].movieId}`} className="group relative col-span-1 md:col-span-2 aspect-video md:aspect-auto bg-surface-container rounded-xl overflow-hidden hover:ring-2 ring-outline-variant/40 transition-all cursor-pointer block">
+                            <img alt={continueWatching[0].movieTitle || "Movie"} className="w-full h-full object-cover" src={continueWatching[0].posterUrl || continueWatching[0].backdropUrl || ""}/>
                             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-6 md:p-8 flex flex-col justify-end">
                                 <span className="text-primary text-[10px] md:text-xs font-bold uppercase tracking-widest mb-1 md:mb-2">Tiếp Tục</span>
-                                <h3 className="text-xl md:text-3xl font-headline font-bold text-white mb-3 md:mb-4 line-clamp-1">{continueWatching[0].title || ''}</h3>
+                                <h3 className="text-xl md:text-3xl font-headline font-bold text-white mb-3 md:mb-4 line-clamp-1">{continueWatching[0].movieTitle || ''}</h3>
                                 <div className="w-full h-1 bg-surface-variant rounded-full overflow-hidden">
-                                    <div className="w-2/3 h-full bg-primary shadow-[0_0_10px_rgba(255,180,170,0.5)]"></div>
+                                    <div className="h-full bg-primary shadow-[0_0_10px_rgba(255,180,170,0.5)]" style={{width: `${getProgressPercent(continueWatching[0])}%`}}></div>
                                 </div>
                             </div>
                         </Link>
                         )}
                         <div className="grid grid-cols-2 md:grid-cols-1 md:flex md:flex-col gap-4 md:gap-6 h-auto md:h-full">
                             {continueWatching[1] && (
-                            <Link to={`/watch/${continueWatching[1].id}`} className="group relative aspect-video md:aspect-auto md:flex-1 bg-surface-container rounded-xl overflow-hidden hover:ring-2 ring-outline-variant/40 transition-all cursor-pointer block">
-                                <img alt={continueWatching[1].title || "Series"} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" src={continueWatching[1].backdropUrl || continueWatching[1].posterUrl || ""}/>
+                            <Link to={`/watch/${continueWatching[1].movieId}`} className="group relative aspect-video md:aspect-auto md:flex-1 bg-surface-container rounded-xl overflow-hidden hover:ring-2 ring-outline-variant/40 transition-all cursor-pointer block">
+                                <img alt={continueWatching[1].movieTitle || "Series"} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" src={continueWatching[1].backdropUrl || continueWatching[1].posterUrl || ""}/>
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent p-3 md:p-4 flex flex-col justify-end">
-                                    <h4 className="text-white font-headline text-xs md:text-base font-bold line-clamp-1">{continueWatching[1].title || ''}</h4>
-                                    <div className="w-full h-1 bg-surface-variant rounded-full overflow-hidden mt-1.5 md:mt-2"><div className="w-1/4 h-full bg-primary"></div></div>
+                                    <h4 className="text-white font-headline text-xs md:text-base font-bold line-clamp-1">{continueWatching[1].movieTitle || ''}</h4>
+                                    <div className="w-full h-1 bg-surface-variant rounded-full overflow-hidden mt-1.5 md:mt-2"><div className="h-full bg-primary" style={{width: `${getProgressPercent(continueWatching[1])}%`}}></div></div>
                                 </div>
                             </Link>
                             )}
                             {continueWatching[2] && (
-                            <Link to={`/watch/${continueWatching[2].id}`} className="group relative aspect-video md:aspect-auto md:flex-1 bg-surface-container rounded-xl overflow-hidden hover:ring-2 ring-outline-variant/40 transition-all cursor-pointer block">
-                                <img alt={continueWatching[2].title || "Series"} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" src={continueWatching[2].backdropUrl || continueWatching[2].posterUrl || ""}/>
+                            <Link to={`/watch/${continueWatching[2].movieId}`} className="group relative aspect-video md:aspect-auto md:flex-1 bg-surface-container rounded-xl overflow-hidden hover:ring-2 ring-outline-variant/40 transition-all cursor-pointer block">
+                                <img alt={continueWatching[2].movieTitle || "Series"} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" src={continueWatching[2].backdropUrl || continueWatching[2].posterUrl || ""}/>
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent p-3 md:p-4 flex flex-col justify-end">
-                                    <h4 className="text-white font-headline text-xs md:text-base font-bold line-clamp-1">{continueWatching[2].title || ''}</h4>
-                                    <div className="w-full h-1 bg-surface-variant rounded-full overflow-hidden mt-1.5 md:mt-2"><div className="w-5/6 h-full bg-primary"></div></div>
+                                    <h4 className="text-white font-headline text-xs md:text-base font-bold line-clamp-1">{continueWatching[2].movieTitle || ''}</h4>
+                                    <div className="w-full h-1 bg-surface-variant rounded-full overflow-hidden mt-1.5 md:mt-2"><div className="h-full bg-primary" style={{width: `${getProgressPercent(continueWatching[2])}%`}}></div></div>
                                 </div>
                             </Link>
                             )}

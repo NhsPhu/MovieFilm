@@ -5,6 +5,7 @@ import com.movieplatform.entity.Movie.ProcessingStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -37,4 +38,9 @@ public interface MovieRepository extends JpaRepository<Movie, Long> {
     Long sumViewsCount();
 
     List<Movie> findTop5ByOrderByCreatedAtDesc();
+
+    // Atomic increment — avoids race condition
+    @Modifying
+    @Query("UPDATE Movie m SET m.viewsCount = m.viewsCount + 1 WHERE m.id = :id")
+    void incrementViewsCount(@Param("id") Long id);
 }

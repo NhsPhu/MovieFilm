@@ -18,5 +18,10 @@ export const historyService = {
     getMovieProgress: async (movieId) => {
         const response = await api.get(`/history/movie/${movieId}`)
         return response.data
+    },
+
+    clearHistory: async () => {
+        const response = await api.delete('/history')
+        return response.data
     }
 }
