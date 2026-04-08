@@ -6,13 +6,26 @@ import com.movieplatform.entity.User;
 import com.movieplatform.exception.ResourceNotFoundException;
 import com.movieplatform.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import com.movieplatform.dto.auth.UpdateProfileRequest;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.UUID;
 
 @Service
 public class ProfileService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Value("${app.storage.path:../storage}")
+    private String storagePath;
 
     public void requestOtp(String account) {
         // In a real application, implement Email/SMS sending logic here.
@@ -66,5 +79,45 @@ public class ProfileService {
         user.setDefaultQuality(request.getDefaultQuality());
 
         userRepository.save(user);
+    }
+
+    public void updateBasicProfile(String account, UpdateProfileRequest request) {
+        User user = userRepository.findByEmailOrPhoneNumber(account, account)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        user.setFullName(request.getFullName());
+        
+        if (request.getPhoneNumber() != null && !request.getPhoneNumber().trim().isEmpty()) {
+            boolean exists = userRepository.existsByPhoneNumber(request.getPhoneNumber());
+            if (exists && (user.getPhoneNumber() == null || !user.getPhoneNumber().equals(request.getPhoneNumber()))) {
+                throw new RuntimeException("Phone number already exists");
+            }
+            user.setPhoneNumber(request.getPhoneNumber());
+        }
+
+        userRepository.save(user);
+    }
+
+    public String uploadAvatar(String account, MultipartFile file) throws IOException {
+        User user = userRepository.findByEmailOrPhoneNumber(account, account)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (file.isEmpty()) {
+            throw new RuntimeException("File is empty");
+        }
+
+        Path avatarDirPath = Paths.get(storagePath, "avatars").toAbsolutePath().normalize();
+        Files.createDirectories(avatarDirPath);
+
+        String filename = UUID.randomUUID().toString() + "_" + file.getOriginalFilename().replaceAll("[^a-zA-Z0-9.-]", "_");
+        Path filePath = avatarDirPath.resolve(filename);
+
+        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+        String avatarUrl = "/api/avatars/" + filename;
+        user.setAvatarUrl(avatarUrl);
+        userRepository.save(user);
+
+        return avatarUrl;
     }
 }

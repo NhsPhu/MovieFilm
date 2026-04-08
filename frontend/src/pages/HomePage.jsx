@@ -114,10 +114,10 @@ export default function HomePage() {
                     <div className="mb-4 md:mb-6">
                         <h2 className="text-xl md:text-2xl font-headline font-bold tracking-tight text-on-surface">Đang Xem</h2>
                     </div>
-                    <div className="flex flex-col md:grid md:grid-cols-3 gap-4 md:gap-6 h-auto md:h-[400px]">
+                    <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 md:gap-6 lg:min-h-[450px]">
                         {continueWatching[0] && (
-                        <Link to={`/watch/${continueWatching[0].movieId}`} className="group relative col-span-1 md:col-span-2 aspect-video md:aspect-auto bg-surface-container rounded-xl overflow-hidden hover:ring-2 ring-outline-variant/40 transition-all cursor-pointer block">
-                            <img alt={continueWatching[0].movieTitle || "Movie"} className="w-full h-full object-cover" src={continueWatching[0].posterUrl || continueWatching[0].backdropUrl || ""}/>
+                        <Link to={`/watch/${continueWatching[0].movieId}`} className="group relative col-span-1 lg:col-span-2 aspect-[16/10] lg:aspect-auto lg:h-full bg-surface-container rounded-xl overflow-hidden hover:ring-2 ring-outline-variant/40 transition-all cursor-pointer block">
+                            <img alt={continueWatching[0].movieTitle || "Movie"} className="w-full h-full object-cover" src={continueWatching[0].backdropUrl || continueWatching[0].posterUrl || ""}/>
                             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-6 md:p-8 flex flex-col justify-end">
                                 <span className="text-primary text-[10px] md:text-xs font-bold uppercase tracking-widest mb-1 md:mb-2">Tiếp Tục</span>
                                 <h3 className="text-xl md:text-3xl font-headline font-bold text-white mb-3 md:mb-4 line-clamp-1">{continueWatching[0].movieTitle || ''}</h3>
@@ -127,9 +127,9 @@ export default function HomePage() {
                             </div>
                         </Link>
                         )}
-                        <div className="grid grid-cols-2 md:grid-cols-1 md:flex md:flex-col gap-4 md:gap-6 h-auto md:h-full">
+                        <div className="flex flex-col gap-4 md:gap-6 h-full">
                             {continueWatching[1] && (
-                            <Link to={`/watch/${continueWatching[1].movieId}`} className="group relative aspect-video md:aspect-auto md:flex-1 bg-surface-container rounded-xl overflow-hidden hover:ring-2 ring-outline-variant/40 transition-all cursor-pointer block">
+                            <Link to={`/watch/${continueWatching[1].movieId}`} className="group relative aspect-video lg:aspect-auto lg:flex-1 min-h-[160px] bg-surface-container rounded-xl overflow-hidden hover:ring-2 ring-outline-variant/40 transition-all cursor-pointer block">
                                 <img alt={continueWatching[1].movieTitle || "Series"} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" src={continueWatching[1].backdropUrl || continueWatching[1].posterUrl || ""}/>
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent p-3 md:p-4 flex flex-col justify-end">
                                     <h4 className="text-white font-headline text-xs md:text-base font-bold line-clamp-1">{continueWatching[1].movieTitle || ''}</h4>
@@ -138,7 +138,7 @@ export default function HomePage() {
                             </Link>
                             )}
                             {continueWatching[2] && (
-                            <Link to={`/watch/${continueWatching[2].movieId}`} className="group relative aspect-video md:aspect-auto md:flex-1 bg-surface-container rounded-xl overflow-hidden hover:ring-2 ring-outline-variant/40 transition-all cursor-pointer block">
+                            <Link to={`/watch/${continueWatching[2].movieId}`} className="group relative aspect-video lg:aspect-auto lg:flex-1 min-h-[160px] bg-surface-container rounded-xl overflow-hidden hover:ring-2 ring-outline-variant/40 transition-all cursor-pointer block">
                                 <img alt={continueWatching[2].movieTitle || "Series"} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" src={continueWatching[2].backdropUrl || continueWatching[2].posterUrl || ""}/>
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent p-3 md:p-4 flex flex-col justify-end">
                                     <h4 className="text-white font-headline text-xs md:text-base font-bold line-clamp-1">{continueWatching[2].movieTitle || ''}</h4>

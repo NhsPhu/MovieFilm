@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/users/profile")
+@RequestMapping("/users/profile")
 public class ProfileController {
 
     @Autowired
@@ -43,5 +43,24 @@ public class ProfileController {
         String account = authentication.getName();
         profileService.updateSettings(account, request);
         return ResponseEntity.ok(Map.of("message", "Settings updated successfully"));
+    }
+
+    @PutMapping("/info")
+    public ResponseEntity<?> updateBasicProfile(Authentication authentication, @Valid @RequestBody com.movieplatform.dto.auth.UpdateProfileRequest request) {
+        String account = authentication.getName();
+        profileService.updateBasicProfile(account, request);
+        return ResponseEntity.ok(Map.of("message", "Profile updated successfully"));
+    }
+
+    @PostMapping("/avatar")
+    public ResponseEntity<?> uploadAvatar(Authentication authentication, @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        try {
+            String account = authentication.getName();
+            String avatarUrl = profileService.uploadAvatar(account, file);
+            return ResponseEntity.ok(Map.of("message", "Avatar uploaded successfully", "avatarUrl", avatarUrl));
+        } catch (Exception e) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
     }
 }

@@ -160,7 +160,7 @@ public class MovieService {
                 .collect(Collectors.toList());
 
         Pageable pageable = PageRequest.of(0, limit + 1);
-        List<Movie> related = movieRepository.findByGenreIds(genreIds, pageable).getContent();
+        List<Movie> related = movieRepository.findByGenreIds(genreIds, pageable);
 
         return related.stream()
                 .filter(m -> !m.getId().equals(movieId))

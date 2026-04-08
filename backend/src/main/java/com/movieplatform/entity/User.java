@@ -42,6 +42,13 @@ public class User {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column
+    private String avatarUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private MembershipRank membershipRank = MembershipRank.MEMBER;
+
     // Playback Settings
     @Column(nullable = false)
     private Boolean autoPlayNext = true;
@@ -54,5 +61,9 @@ public class User {
 
     public enum UserRole {
         ADMIN, USER
+    }
+
+    public enum MembershipRank {
+        MEMBER, CLOSE, VIP
     }
 }

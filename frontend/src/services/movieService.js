@@ -11,11 +11,6 @@ export const movieService = {
         return response.data
     },
 
-    getMovieById: async (id) => {
-        const response = await api.get(`/movies/${id}`)
-        return response.data
-    },
-
     getStreamUrl: (movieId) => {
         return `/api/stream/${movieId}/master.m3u8`
     },

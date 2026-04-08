@@ -21,5 +21,21 @@ export const authService = {
     getCurrentUser: async () => {
         const response = await api.get('/auth/me')
         return response.data
+    },
+
+    updateProfile: async (fullName, phoneNumber) => {
+        const response = await api.put('/users/profile/info', { fullName, phoneNumber })
+        return response.data
+    },
+
+    uploadAvatar: async (file) => {
+        const formData = new FormData()
+        formData.append('file', file)
+        const response = await api.post('/users/profile/avatar', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        })
+        return response.data
     }
 }

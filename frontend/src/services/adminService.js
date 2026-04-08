@@ -49,5 +49,15 @@ export const adminService = {
             console.error("Error fetching recent activities:", error);
             return [];
         }
+    },
+
+    updateMovie: async (id, movieData) => {
+        try {
+            const response = await api.put(`/admin/movies/${id}`, movieData);
+            return response.data;
+        } catch (error) {
+            console.error("Error updating movie:", error);
+            throw error;
+        }
     }
 };

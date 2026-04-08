@@ -31,7 +31,7 @@ public class WatchHistoryService {
 
     @Transactional
     public WatchHistoryDTO updateProgress(String email, UpdateProgressRequest request) {
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailOrPhoneNumber(email, email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         Movie movie = movieRepository.findById(request.getMovieId())
@@ -82,7 +82,7 @@ public class WatchHistoryService {
     }
 
     public List<WatchHistoryDTO> getUserHistory(String email) {
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailOrPhoneNumber(email, email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         List<WatchHistory> histories = watchHistoryRepository
@@ -94,7 +94,7 @@ public class WatchHistoryService {
     }
 
     public WatchHistoryDTO getMovieProgress(String email, Long movieId) {
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailOrPhoneNumber(email, email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         WatchHistory history = watchHistoryRepository
@@ -110,7 +110,7 @@ public class WatchHistoryService {
 
     @Transactional
     public void clearHistory(String email) {
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailOrPhoneNumber(email, email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         watchHistoryRepository.deleteByUserId(user.getId());
     }

@@ -71,17 +71,18 @@ public class AdminAnalyticsService {
                 .map(Genre::getName)
                 .collect(Collectors.toList());
 
-        return new MovieDTO(
-                movie.getId(),
-                movie.getTitle(),
-                movie.getDescription(),
-                movie.getPosterUrl(),
-                movie.getReleaseYear(),
-                movie.getDurationSec(),
-                movie.getViewsCount(),
-                movie.getAvgRating(),
-                movie.getStatus().name(),
-                genreNames,
-                movie.getCreatedAt());
+        MovieDTO dto = new MovieDTO();
+        dto.setId(movie.getId());
+        dto.setTitle(movie.getTitle());
+        dto.setDescription(movie.getDescription());
+        dto.setPosterUrl(movie.getPosterUrl());
+        dto.setReleaseYear(movie.getReleaseYear());
+        dto.setDurationSec(movie.getDurationSec());
+        dto.setViewsCount(movie.getViewsCount());
+        dto.setAvgRating(movie.getAvgRating());
+        dto.setStatus(movie.getStatus().name());
+        dto.setGenres(genreNames);
+        dto.setCreatedAt(movie.getCreatedAt());
+        return dto;
     }
 }

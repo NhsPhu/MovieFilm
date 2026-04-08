@@ -1,29 +1,40 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import useAuthStore from '../store/useAuthStore'
 import { historyService } from '../services/historyService'
 import { profileService } from '../services/profileService'
 import { watchlistService } from '../services/watchlistService'
+import { Loader2 } from 'lucide-react'
 
 export default function ProfilePage() {
-    const { user, logout, fetchCurrentUser } = useAuthStore()
+    const { user, logout, fetchCurrentUser, updateProfile, uploadAvatar } = useAuthStore()
     const [activeTab, setActiveTab] = useState('history')
     const [watchHistory, setWatchHistory] = useState([])
     const [myList, setMyList] = useState([])
 
     // Profile Settings States
     const [isEditingContact, setIsEditingContact] = useState(false)
-    const [newContact, setNewContact] = useState('')
-    const [otpSent, setOtpSent] = useState(false)
-    const [otp, setOtp] = useState('')
+    const [editForm, setEditForm] = useState({ fullName: '', phoneNumber: '' })
     const [contactError, setContactError] = useState('')
+    const [isSaving, setIsSaving] = useState(false)
+    const [isUploading, setIsUploading] = useState(false)
+
+    const fileInputRef = useRef(null)
+
     const [settings, setSettings] = useState({
         autoPlayNext: false,
         previewOnHover: false,
         defaultQuality: '1080p HD'
     })
 
-    const isPhone = /^\d+$/.test(newContact)
+    useEffect(() => {
+        if (user) {
+            setEditForm({
+                fullName: user.fullName || '',
+                phoneNumber: user.phoneNumber || ''
+            })
+        }
+    }, [user])
 
     useEffect(() => {
         if (activeTab === 'history') {
@@ -51,29 +62,44 @@ export default function ProfilePage() {
         }
     }
 
-    const handleRequestOtp = async () => {
-        if (!newContact) return;
+    const handleUpdateProfile = async () => {
+        if (!editForm.fullName) {
+            setContactError('Tên không được để trống');
+            return;
+        }
         setContactError('');
+        setIsSaving(true);
         try {
-            await profileService.requestOtp();
-            setOtpSent(true);
+            await updateProfile(editForm.fullName, editForm.phoneNumber);
+            setIsEditingContact(false);
         } catch (err) {
-            setContactError('Lỗi gửi yêu cầu OTP');
+            setContactError(err.response?.data?.message || err.response?.data?.error || 'Lỗi cập nhật thông tin');
+        } finally {
+            setIsSaving(false);
         }
     }
 
-    const handleUpdateContact = async () => {
-        if (!otp) return;
-        setContactError('');
+    const handleAvatarClick = () => {
+        fileInputRef.current?.click()
+    }
+
+    const handleFileChange = async (e) => {
+        const file = e.target.files?.[0]
+        if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) {
+            alert('File ảnh quá lớn! Vui lòng chọn ảnh dưới 5MB.');
+            return;
+        }
+
+        setIsUploading(true);
         try {
-            await profileService.updateContact(newContact, otp);
-            setIsEditingContact(false);
-            setOtpSent(false);
-            setNewContact('');
-            setOtp('');
-            fetchCurrentUser(); // refresh user context
+            await uploadAvatar(file);
         } catch (err) {
-            setContactError(err.response?.data?.message || 'Lỗi cập nhật thông tin');
+            alert(err.response?.data?.message || 'Lỗi tải ảnh lên');
+        } finally {
+            setIsUploading(false);
+            e.target.value = null;
         }
     }
 
@@ -92,46 +118,81 @@ export default function ProfilePage() {
         { key: 'settings', label: 'Cài Đặt Hồ Sơ' },
     ]
 
-    const displayName = user?.fullName || user?.username || user?.email?.split('@')[0] || user?.phoneNumber || 'User'
-    const memberDate = user?.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' }) : 'Tháng 10, 2024'
-    const currentAccount = user?.email || user?.phoneNumber || 'Chưa cập nhật'
+    const displayName = user?.fullName || user?.email?.split('@')[0] || user?.phoneNumber || 'User'
+    
+    // Format Created Date
+    const memberDate = user?.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN', { month: 'short', year: 'numeric' }) : 'Vừa mới tham gia'
+    
+    const renderRankBadge = () => {
+        if (user?.membershipRank === 'VIP') {
+            return (
+                <span className="px-3 py-1 bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 text-xs font-bold tracking-widest uppercase rounded-full self-center flex items-center gap-1 shadow-[0_0_15px_rgba(234,179,8,0.2)]">
+                    <span className="material-symbols-outlined text-[14px]">stars</span>
+                    VIP
+                </span>
+            )
+        }
+        if (user?.membershipRank === 'CLOSE') {
+            return (
+                <span className="px-3 py-1 bg-blue-500/20 text-blue-500 border border-blue-500/30 text-xs font-bold tracking-widest uppercase rounded-full self-center">
+                    Thân Thiết
+                </span>
+            )
+        }
+        return (
+            <span className="px-3 py-1 bg-surface-container-high text-on-surface-variant border border-outline-variant/30 text-xs font-bold tracking-widest uppercase rounded-full self-center">
+                Thành Viên
+            </span>
+        )
+    }
 
     return (
         <main className="pt-12 pb-20 px-6 md:px-12 max-w-7xl mx-auto min-h-screen">
             {/* Header Section */}
             <header className="mb-16 flex flex-col md:flex-row items-center md:items-end gap-8">
-                <div className="relative group">
-                    <div className="w-32 h-32 md:w-44 md:h-44 rounded-xl overflow-hidden shadow-2xl shadow-black/50 border border-outline-variant/20">
+                <div className="relative group cursor-pointer" onClick={handleAvatarClick}>
+                    <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        className="hidden" 
+                        accept="image/jpeg, image/png, image/webp" 
+                        onChange={handleFileChange} 
+                    />
+                    <div className="w-32 h-32 md:w-44 md:h-44 rounded-xl overflow-hidden shadow-2xl shadow-black/50 border border-outline-variant/20 relative">
+                        {isUploading && (
+                            <div className="absolute inset-0 z-10 bg-black/60 flex items-center justify-center">
+                                <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                            </div>
+                        )}
                         {user?.avatarUrl ? (
-                            <img alt="User avatar" className="w-full h-full object-cover" src={user.avatarUrl}/>
+                            <img alt="User avatar" className="w-full h-full object-cover group-hover:opacity-80 transition-opacity" src={user.avatarUrl.startsWith('http') ? user.avatarUrl : `http://localhost:8080${user.avatarUrl}`}/>
                         ) : (
-                            <div className="w-full h-full bg-surface-container-high flex items-center justify-center">
+                            <div className="w-full h-full bg-surface-container-high flex items-center justify-center group-hover:bg-surface-container-highest transition-colors">
                                 <span className="material-symbols-outlined text-6xl text-on-surface-variant">person</span>
                             </div>
                         )}
                     </div>
-                    <button className="absolute bottom-2 right-2 p-2 bg-primary-container text-on-primary-container rounded-lg shadow-lg hover:scale-105 transition-all">
-                        <span className="material-symbols-outlined text-sm">edit</span>
+                    <button className="absolute bottom-2 right-2 p-2 bg-primary-container text-on-primary-container rounded-lg shadow-lg group-hover:scale-110 transition-all z-20">
+                        <span className="material-symbols-outlined text-sm">photo_camera</span>
                     </button>
                 </div>
+                
                 <div className="flex-1 text-center md:text-left">
                     <div className="flex flex-col md:flex-row md:items-center gap-3 mb-2 justify-center md:justify-start">
                         <h1 className="font-headline text-4xl md:text-6xl font-extrabold tracking-tight text-on-surface">{displayName}</h1>
-                        <span className="px-3 py-1 bg-primary-container/20 text-primary-container border border-primary-container/30 text-xs font-bold tracking-widest uppercase rounded-full self-center">
-                            {user?.role === 'ADMIN' ? 'Quản Trị' : 'Thành Viên VIP'}
-                        </span>
+                        {renderRankBadge()}
                     </div>
                     <p className="text-on-surface-variant font-body text-lg">
-                        Thành viên từ {memberDate} • {currentAccount}
+                        Tham gia từ {memberDate} • {user?.email || 'Chưa liên kết Email'}
                     </p>
                 </div>
                 <div className="flex gap-4">
                     <button onClick={logout} className="px-6 py-3 bg-surface-container-high text-on-surface font-headline font-bold rounded-lg hover:bg-surface-container-highest transition-all">
                         Đăng Xuất
                     </button>
-                    <Link to="/profile" className="px-6 py-3 bg-primary-container text-on-primary-container font-headline font-bold rounded-lg shadow-[0px_0px_15px_rgba(229,9,20,0.2)] hover:scale-105 transition-all active:opacity-80">
-                        Quản Lý Tài Khoản
-                    </Link>
+                    <button onClick={() => setActiveTab('settings')} className="px-6 py-3 bg-primary-container text-on-primary-container font-headline font-bold rounded-lg shadow-[0px_0px_15px_rgba(229,9,20,0.2)] hover:scale-105 transition-all active:opacity-80">
+                        Quản Lý Hồ Sơ
+                    </button>
                 </div>
             </header>
 
@@ -159,13 +220,12 @@ export default function ProfilePage() {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {watchHistory.length > 0 ? watchHistory.map((item, i) => {
-                            // Calculate a fake progress percentage if the backend only gives currentTimeSec without duration
                             const progress = item.isFinished ? 100 : (item.currentTimeSec ? Math.min(Math.floor((item.currentTimeSec / (120*60)) * 100) + 10, 95) : Math.floor(Math.random() * 80 + 10))
                             const finished = item.isFinished || progress >= 100
                             const timeLabel = item.lastWatchedAt ? new Date(item.lastWatchedAt).toLocaleDateString('vi-VN') : 'gần đây'
                             
                             return (
-                                <div key={item.id || i} className="group relative bg-surface-container rounded-xl overflow-hidden hover:scale-[1.02] transition-all duration-300">
+                                <div key={item.id || i} className="group relative bg-surface-container rounded-xl overflow-hidden hover:scale-[1.02] transition-all duration-300 pointer-events-auto">
                                     <div className="aspect-video relative">
                                         <img alt={item.movieTitle || 'Movie'} className="w-full h-full object-cover" src={item.posterUrl || 'https://via.placeholder.com/400x225?text=No+Image'}/>
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
@@ -239,69 +299,81 @@ export default function ProfilePage() {
             {/* Tab: Profile Settings */}
             {activeTab === 'settings' && (
                 <section className="mb-20">
-                    <h2 className="font-headline text-2xl font-bold text-on-surface mb-8">Cài Đặt Hồ Sơ</h2>
                     <div className="grid grid-cols-1 md:grid-cols-4 grid-rows-2 gap-6">
-                        {/* Security Card */}
+                        {/* Information Card */}
                         <div className="md:col-span-2 p-8 bg-surface-container rounded-xl border border-outline-variant/10">
                             <div className="flex items-center gap-4 mb-6">
                                 <div className="p-3 bg-primary-container/10 rounded-lg">
-                                    <span className="material-symbols-outlined text-primary-container">shield</span>
+                                    <span className="material-symbols-outlined text-primary-container">badge</span>
                                 </div>
-                                <h3 className="font-headline font-bold text-xl">Đăng Nhập & Bảo Mật</h3>
+                                <h3 className="font-headline font-bold text-xl">Thông Tin Cá Nhân</h3>
                             </div>
                             <div className="space-y-6">
-                                <div>
-                                    <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-2">ĐỊA CHỈ EMAIL / SỐ ĐIỆN THOẠI</label>
-                                    {!isEditingContact ? (
-                                        <div className="flex justify-between items-center py-2 border-b border-outline-variant/30">
-                                            <span className="font-body">{currentAccount}</span>
-                                            <button onClick={() => setIsEditingContact(true)} className="text-primary-container text-sm font-bold hover:underline">Thay Đổi</button>
-                                        </div>
-                                    ) : (
-                                        <div className="py-2 border-b border-outline-variant/30 space-y-3">
-                                            {contactError && <p className="text-error text-xs">{contactError}</p>}
-                                            <div className="relative flex items-center">
-                                                {isPhone && (
-                                                    <div className="absolute left-0 top-0 bottom-0 text-on-surface-variant px-3 font-bold border-r border-outline-variant flex items-center justify-center gap-1 bg-surface-container-low rounded-l-md z-10 text-xs">
-                                                        +84
-                                                    </div>
-                                                )}
-                                                <input 
-                                                    className={`w-full bg-surface-container-lowest border-0 border-b border-outline-variant focus:border-primary focus:ring-0 text-on-surface placeholder:text-surface-container-highest transition-all duration-300 py-2 text-sm ${isPhone ? 'pl-16' : 'px-1'}`} 
-                                                    placeholder={isPhone ? "912 345 678" : "email mới..."} 
-                                                    type="text" 
-                                                    value={newContact} 
-                                                    onChange={e => setNewContact(e.target.value)}
-                                                    disabled={otpSent}
-                                                />
-                                            </div>
-                                            {otpSent && (
-                                                <input 
-                                                    className="w-full bg-surface-container-lowest border-0 border-b border-outline-variant focus:border-primary focus:ring-0 text-on-surface placeholder:text-surface-container-highest transition-all duration-300 py-2 text-sm px-1" 
-                                                    placeholder="Nhập mã OTP (123456)" 
-                                                    type="text" 
-                                                    value={otp} 
-                                                    onChange={e => setOtp(e.target.value)}
-                                                />
-                                            )}
-                                            <div className="flex gap-2 justify-end pt-2">
-                                                <button onClick={() => { setIsEditingContact(false); setOtpSent(false); setNewContact(''); setOtp(''); setContactError(''); }} className="text-xs font-bold text-on-surface-variant hover:text-white px-3 py-1">Hủy</button>
-                                                {!otpSent ? (
-                                                    <button onClick={handleRequestOtp} className="text-xs font-bold bg-primary-container text-on-primary-container px-3 py-1 rounded">Gửi OTP</button>
-                                                ) : (
-                                                    <button onClick={handleUpdateContact} className="text-xs font-bold bg-primary-container text-on-primary-container px-3 py-1 rounded">Xác Nhận</button>
-                                                )}
+                                {!isEditingContact ? (
+                                    <>
+                                        <div className="border-b border-outline-variant/30 pb-4">
+                                            <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-1">HỌ VÀ TÊN</label>
+                                            <div className="flex justify-between items-center mt-1">
+                                                <span className="font-body font-medium">{user?.fullName}</span>
                                             </div>
                                         </div>
-                                    )}
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-2">Mật Khẩu</label>
-                                    <div className="flex justify-between items-center py-2 border-b border-outline-variant/30">
-                                        <span className="font-body">••••••••••••</span>
-                                        <button className="text-primary-container text-sm font-bold">Cập Nhật</button>
+                                        <div className="border-b border-outline-variant/30 pb-4">
+                                            <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-1">SỐ ĐIỆN THOẠI</label>
+                                            <div className="flex justify-between items-center mt-1">
+                                                <span className="font-body font-medium">{user?.phoneNumber || 'Chưa cung cấp'}</span>
+                                            </div>
+                                        </div>
+                                        <div className="pt-2 text-right">
+                                            <button onClick={() => setIsEditingContact(true)} className="px-4 py-2 bg-surface-container-highest text-on-surface text-sm font-bold rounded-lg hover:bg-white/10 transition">
+                                                Cập Nhật Thông Tin
+                                            </button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {contactError && <p className="text-error text-xs bg-error/10 p-2 rounded">{contactError}</p>}
+                                        <div>
+                                            <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-2">HỌ VÀ TÊN</label>
+                                            <input 
+                                                className="w-full bg-surface-container-lowest border border-outline-variant/50 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg text-on-surface px-4 py-2.5 text-sm transition-all outline-none" 
+                                                placeholder="VD: Nguyễn Văn A" 
+                                                type="text" 
+                                                value={editForm.fullName} 
+                                                onChange={e => setEditForm({...editForm, fullName: e.target.value})}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-2">SỐ ĐIỆN THOẠI</label>
+                                            <input 
+                                                className="w-full bg-surface-container-lowest border border-outline-variant/50 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg text-on-surface px-4 py-2.5 text-sm transition-all outline-none" 
+                                                placeholder="Nhập số điện thoại..." 
+                                                type="text" 
+                                                value={editForm.phoneNumber} 
+                                                onChange={e => setEditForm({...editForm, phoneNumber: e.target.value})}
+                                            />
+                                        </div>
+                                        <div className="flex gap-3 justify-end pt-4 border-t border-outline-variant/20 mt-6">
+                                            <button 
+                                                onClick={() => { 
+                                                    setIsEditingContact(false); 
+                                                    setContactError(''); 
+                                                    setEditForm({fullName: user?.fullName || '', phoneNumber: user?.phoneNumber || ''})
+                                                }} 
+                                                className="px-5 py-2 text-sm font-bold text-on-surface-variant hover:bg-surface-variant rounded-lg transition"
+                                            >
+                                                Hủy
+                                            </button>
+                                            <button 
+                                                onClick={handleUpdateProfile} 
+                                                disabled={isSaving}
+                                                className="px-5 py-2 text-sm font-bold bg-primary-container text-on-primary-container rounded-lg hover:opacity-90 flex flex-items-center gap-2 transition"
+                                            >
+                                                {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                                                Lưu Thay Đổi
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
                         </div>
 
@@ -311,27 +383,27 @@ export default function ProfilePage() {
                                 <div className="p-3 bg-tertiary/10 rounded-lg">
                                     <span className="material-symbols-outlined text-tertiary">tune</span>
                                 </div>
-                                <h3 className="font-headline font-bold text-xl">Tùy Chỉnh Phát</h3>
+                                <h3 className="font-headline font-bold text-xl">Tùy Chỉnh Lõi</h3>
                             </div>
                             <div className="space-y-4">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-on-surface">Tự động phát tập tiếp theo</span>
-                                    <div onClick={() => handleSettingChange('autoPlayNext', !settings.autoPlayNext)} className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${settings.autoPlayNext ? 'bg-primary-container' : 'bg-surface-variant'}`}>
+                                <div className="flex justify-between items-center p-3 hover:bg-surface-container-highest rounded-lg transition-colors cursor-pointer" onClick={() => handleSettingChange('autoPlayNext', !settings.autoPlayNext)}>
+                                    <span className="text-on-surface text-sm font-bold">Tự động phát tập tiếp theo</span>
+                                    <div className={`w-12 h-6 rounded-full relative transition-colors ${settings.autoPlayNext ? 'bg-primary-container' : 'bg-surface-variant'}`}>
                                         <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${settings.autoPlayNext ? 'right-1' : 'left-1'}`}></div>
                                     </div>
                                 </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-on-surface">Xem trước khi rê chuột</span>
-                                    <div onClick={() => handleSettingChange('previewOnHover', !settings.previewOnHover)} className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${settings.previewOnHover ? 'bg-primary-container' : 'bg-surface-variant'}`}>
+                                <div className="flex justify-between items-center p-3 hover:bg-surface-container-highest rounded-lg transition-colors cursor-pointer" onClick={() => handleSettingChange('previewOnHover', !settings.previewOnHover)}>
+                                    <span className="text-on-surface text-sm font-bold">Xem trước khi rê chuột</span>
+                                    <div className={`w-12 h-6 rounded-full relative transition-colors ${settings.previewOnHover ? 'bg-primary-container' : 'bg-surface-variant'}`}>
                                         <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${settings.previewOnHover ? 'right-1' : 'left-1'}`}></div>
                                     </div>
                                 </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-on-surface-variant">Chất Lượng Mặc Định</span>
+                                <div className="flex justify-between items-center p-3">
+                                    <span className="text-on-surface-variant text-sm font-bold">Chất Lượng Mặc Định</span>
                                     <select 
                                         value={settings.defaultQuality}
                                         onChange={(e) => handleSettingChange('defaultQuality', e.target.value)}
-                                        className="bg-surface-container-high border-none rounded-lg text-sm text-on-surface p-2 focus:ring-1 focus:ring-primary-container">
+                                        className="bg-surface-container-lowest border border-outline-variant/50 rounded-lg text-sm text-on-surface px-4 py-2 focus:ring-1 focus:ring-primary-container outline-none">
                                         <option value="4K Ultra HD">4K Ultra HD</option>
                                         <option value="1080p HD">1080p HD</option>
                                         <option value="Tiết Kiệm Dữ Liệu">Tiết Kiệm Dữ Liệu</option>
@@ -340,12 +412,12 @@ export default function ProfilePage() {
                             </div>
                         </div>
 
-                        {/* Notification Card */}
-                        <div className="md:col-span-1 p-6 bg-surface-container-low rounded-xl border border-outline-variant/10 text-center">
-                            <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-4 block">notifications_active</span>
-                            <h4 className="font-headline font-bold mb-2">Thông Báo</h4>
-                            <p className="text-xs text-on-surface-variant mb-4">Quản lý thông báo và cập nhật của bạn.</p>
-                            <button className="text-xs font-bold py-2 px-4 border border-outline-variant/30 rounded-lg hover:bg-surface-variant transition-colors">Cấu Hình</button>
+                        {/* Security Card */}
+                        <div className="md:col-span-1 p-6 bg-surface-container-low rounded-xl border border-outline-variant/10 text-center flex flex-col items-center justify-center">
+                            <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-4 block">password</span>
+                            <h4 className="font-headline font-bold mb-2">Bảo Mật</h4>
+                            <p className="text-xs text-on-surface-variant mb-4">Đổi mật khẩu để đảm bảo an toàn.</p>
+                            <button className="text-xs font-bold py-2 px-4 border border-outline-variant/30 rounded-lg hover:bg-surface-variant transition-colors">Đổi Mật Khẩu</button>
                         </div>
 
                         {/* Billing Card */}
@@ -355,13 +427,13 @@ export default function ProfilePage() {
                                     <span className="font-bold italic text-on-surface">VISA</span>
                                 </div>
                                 <div>
-                                    <h4 className="font-headline font-bold">Thanh Toán & Gói Đăng Ký</h4>
+                                    <h4 className="font-headline font-bold">Thanh Toán & Hạng Thành Viên</h4>
                                     <p className="text-sm text-on-surface-variant">Ngày thanh toán tiếp theo: {new Date(new Date().setMonth(new Date().getMonth() + 1)).toLocaleDateString('vi-VN')}</p>
                                 </div>
                             </div>
                             <div className="flex gap-4">
                                 <button className="text-sm font-bold text-primary-container">Xem Hóa Đơn</button>
-                                <button className="text-sm font-bold px-6 py-2 bg-white text-black rounded-lg">Đổi Gói</button>
+                                <button className="text-sm font-bold px-6 py-2 bg-white text-black rounded-lg hover:bg-gray-200 transition">Nâng Cấp Gói</button>
                             </div>
                         </div>
                     </div>

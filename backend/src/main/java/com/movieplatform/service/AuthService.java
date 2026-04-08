@@ -93,8 +93,12 @@ public class AuthService {
                 user.getId(),
                 principal,
                 user.getFullName(),
+                user.getPhoneNumber(),
                 user.getRole().name(),
-                user.getIsActive());
+                user.getIsActive(),
+                user.getAvatarUrl(),
+                user.getMembershipRank().name(),
+                user.getCreatedAt());
     }
 
     public void changePassword(String account, String oldPassword, String newPassword) {

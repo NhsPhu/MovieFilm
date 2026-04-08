@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom'
 import useAuthStore from '../store/useAuthStore'
 
 export default function Navbar() {
-    const { user, isAuthenticated, logout } = useAuthStore()
+    const { user, token, logout } = useAuthStore()
+    const isAuthenticated = !!token
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
     return (
@@ -23,6 +24,7 @@ export default function Navbar() {
                     {/* Desktop Menu */}
                     <div className="hidden md:flex gap-6 items-center">
                         <Link className="font-headline font-bold tracking-tight text-white border-b-2 border-[#E50914] pb-1" to="/">Trang Chủ</Link>
+                        <Link className="font-headline font-bold tracking-tight text-gray-400 hover:text-white transition-colors" to="/browse">Duyệt Phim</Link>
                         <Link className="font-headline font-bold tracking-tight text-gray-400 hover:text-white transition-colors" to="/search">Phim Bộ</Link>
                         <Link className="font-headline font-bold tracking-tight text-gray-400 hover:text-white transition-colors" to="/search">Phim Lẻ</Link>
                         <Link className="font-headline font-bold tracking-tight text-gray-400 hover:text-white transition-colors" to="/search">Mới & Phổ Biến</Link>
@@ -69,6 +71,7 @@ export default function Navbar() {
                         </div>
                         <div className="flex-1 overflow-y-auto py-4 px-3 flex flex-col gap-2">
                             <Link onClick={() => setIsMobileMenuOpen(false)} to="/" className="px-4 py-3 rounded-xl bg-surface-container-low text-white font-headline font-bold text-sm tracking-wide">Trang Chủ</Link>
+                            <Link onClick={() => setIsMobileMenuOpen(false)} to="/browse" className="px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-low hover:text-white font-headline font-bold text-sm tracking-wide transition-all">Duyệt Phim</Link>
                             <Link onClick={() => setIsMobileMenuOpen(false)} to="/search" className="px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-low hover:text-white font-headline font-bold text-sm tracking-wide transition-all">Phim Bộ</Link>
                             <Link onClick={() => setIsMobileMenuOpen(false)} to="/search" className="px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-low hover:text-white font-headline font-bold text-sm tracking-wide transition-all">Phim Lẻ</Link>
                             <Link onClick={() => setIsMobileMenuOpen(false)} to="/search" className="px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-low hover:text-white font-headline font-bold text-sm tracking-wide transition-all">Mới & Phổ Biến</Link>
