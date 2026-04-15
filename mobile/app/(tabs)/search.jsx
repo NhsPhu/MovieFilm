@@ -9,8 +9,21 @@ import { movieService } from '../../src/services/movieService';
 export default function SearchScreen() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
+  const [trending, setTrending] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+
+  React.useEffect(() => {
+    const loadTrending = async () => {
+      try {
+        const data = await movieService.getMovies(0, 10);
+        setTrending(data.content || data || []);
+      } catch (e) {
+        console.error("Lỗi loadTrending:", e);
+      }
+    };
+    loadTrending();
+  }, []);
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -49,36 +62,55 @@ export default function SearchScreen() {
 
       {loading ? (
         <ActivityIndicator color="#E50914" style={{ marginTop: 40 }} size="large" />
-      ) : searched && results.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyIcon}>🎬</Text>
-          <Text style={styles.emptyText}>Không tìm thấy kết quả</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={results}
-          keyExtractor={(item) => String(item.id)}
-          contentContainerStyle={{ padding: 16, gap: 12 }}
-          renderItem={({ item }) => (
-            <TouchableOpacity style={styles.resultItem} onPress={() => router.push(`/movie/${item.id}`)}>
-              <Image
-                source={{ uri: item.posterUrl || item.backdropUrl || '' }}
-                style={styles.resultPoster}
-                resizeMode="cover"
-              />
-              <View style={styles.resultInfo}>
-                <Text style={styles.resultTitle} numberOfLines={2}>{item.title}</Text>
-                <Text style={styles.resultMeta}>{item.releaseYear || ''}{item.duration ? `  •  ${Math.floor(item.duration / 60)}h ${item.duration % 60}m` : ''}</Text>
-                {(item.genres || []).length > 0 && (
-                  <Text style={styles.resultGenre} numberOfLines={1}>{item.genres.map(g => g.name || g).join(' • ')}</Text>
-                )}
-                {item.avgRating > 0 && <Text style={styles.resultRating}>⭐ {item.avgRating.toFixed(1)}</Text>}
-              </View>
+      ) : searched ? (
+        results.length === 0 ? (
+          <View style={styles.empty}>
+            <Text style={styles.emptyIcon}>🎬</Text>
+            <Text style={styles.emptyText}>Không tìm thấy kết quả cho "{query}"</Text>
+            <TouchableOpacity onPress={() => { setSearched(false); setResults([]); }} style={styles.clearBtn}>
+              <Text style={styles.clearBtnText}>Xóa tìm kiếm</Text>
             </TouchableOpacity>
-          )}
-        />
+          </View>
+        ) : (
+          <FlatList
+            data={results}
+            keyExtractor={(item) => String(item.id)}
+            contentContainerStyle={{ padding: 16, gap: 12 }}
+            renderItem={({ item }) => <SearchResult item={item} />}
+          />
+        )
+      ) : (
+        <View style={{ flex: 1 }}>
+          <Text style={styles.subtitle}>🔥 Phim Đề Cử</Text>
+          <FlatList
+            data={trending}
+            keyExtractor={(item) => `trend-${item.id}`}
+            contentContainerStyle={{ padding: 16, gap: 12 }}
+            renderItem={({ item }) => <SearchResult item={item} />}
+          />
+        </View>
       )}
     </View>
+  );
+}
+
+function SearchResult({ item }) {
+  return (
+    <TouchableOpacity style={styles.resultItem} onPress={() => router.push(`/movie/${item.id}`)}>
+      <Image
+        source={{ uri: item.posterUrl || item.backdropUrl || '' }}
+        style={styles.resultPoster}
+        resizeMode="cover"
+      />
+      <View style={styles.resultInfo}>
+        <Text style={styles.resultTitle} numberOfLines={2}>{item.title}</Text>
+        <Text style={styles.resultMeta}>{item.releaseYear || ''}{item.duration ? `  •  ${Math.floor(item.duration / 60)}h ${item.duration % 60}m` : ''}</Text>
+        {(item.genres || []).length > 0 && (
+          <Text style={styles.resultGenre} numberOfLines={1}>{item.genres.map(g => g.name || g).join(' • ')}</Text>
+        )}
+        {item.avgRating > 0 && <Text style={styles.resultRating}>⭐ {item.avgRating.toFixed(1)}</Text>}
+      </View>
+    </TouchableOpacity>
   );
 }
 
@@ -93,6 +125,11 @@ const styles = StyleSheet.create({
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingBottom: 80 },
   emptyIcon: { fontSize: 48 },
   emptyText: { color: '#555', fontSize: 14 },
+  clearBtn: { marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#333' },
+  clearBtnText: { color: '#aaa', fontSize: 13, fontWeight: '700' },
+  
+  subtitle: { fontSize: 16, fontWeight: '800', color: '#fff', marginLeft: 16, marginTop: 12 },
+
   resultItem: { flexDirection: 'row', gap: 12 },
   resultPoster: { width: 70, height: 100, borderRadius: 8, backgroundColor: '#1a1a1a' },
   resultInfo: { flex: 1, justifyContent: 'center', gap: 4 },

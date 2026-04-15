@@ -7,6 +7,8 @@ import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { Video, ResizeMode } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { movieService, ratingService } from '../../src/services/movieService';
+import { historyService } from '../../src/services/historyService';
+import { watchlistService } from '../../src/services/watchlistService';
 import useAuthStore from '../../src/store/useAuthStore';
 
 const { width } = Dimensions.get('window');
@@ -19,7 +21,12 @@ export default function WatchScreen() {
   const [myReview, setMyReview] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isInWatchlist, setIsInWatchlist] = useState(false);
+  const [initialProgress, setInitialProgress] = useState(0);
   const { user } = useAuthStore();
+  
+  const videoRef = React.useRef(null);
+  const lastSavedTime = React.useRef(0);
 
   const streamUrl = movieService.getStreamUrl(id);
 
@@ -27,15 +34,56 @@ export default function WatchScreen() {
     const load = async () => {
       setLoading(true);
       try {
-        const m = await movieService.getMovie(id);
+        const [m, r] = await Promise.all([
+          movieService.getMovie(id),
+          ratingService.getMovieRatings(id)
+        ]);
         setMovie(m);
-        const r = await ratingService.getMovieRatings(id);
         setRatings(r || []);
+
+        if (user) {
+          // Fetch watchlist status
+          const wlStatus = await watchlistService.checkInWatchlist(id);
+          setIsInWatchlist(wlStatus?.inWatchlist || false);
+
+          // Fetch watch progress
+          const progress = await historyService.getMovieProgress(id);
+          const savedTime = progress?.currentTimeSec || progress?.currentTime || 0;
+          if (savedTime > 0) {
+            setInitialProgress(savedTime * 1000); // convert to ms
+          }
+        }
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
     };
     load();
-  }, [id]);
+  }, [id, user]);
+
+  const handlePlaybackStatusUpdate = (status) => {
+    if (status.isLoaded && status.isPlaying && user) {
+      const currentTimeSeconds = Math.floor(status.positionMillis / 1000);
+      // Save progress every 10 seconds or when significantly changed
+      if (currentTimeSeconds - lastSavedTime.current >= 10) {
+        lastSavedTime.current = currentTimeSeconds;
+        historyService.updateWatchHistory(id, currentTimeSeconds, 'MOBILE').catch(console.error);
+      }
+    }
+  };
+
+  const toggleWatchlist = async () => {
+    if (!user) return Alert.alert('Yêu cầu đăng nhập', 'Vu lòng đăng nhập để thêm vào danh sách yêu thích.');
+    try {
+      if (isInWatchlist) {
+        await watchlistService.removeFromWatchlist(id);
+        setIsInWatchlist(false);
+      } else {
+        await watchlistService.addToWatchlist(id);
+        setIsInWatchlist(true);
+      }
+    } catch (error) {
+      Alert.alert('Lỗi', 'Không thể cập nhật danh sách yêu thích.');
+    }
+  };
 
   const handleSubmitReview = async () => {
     if (!user) return Alert.alert('Chưa đăng nhập', 'Vui lòng đăng nhập để đánh giá.');
@@ -75,6 +123,7 @@ export default function WatchScreen() {
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Video
+          ref={videoRef}
           source={{ uri: streamUrl }}
           style={styles.video}
           useNativeControls
@@ -82,13 +131,24 @@ export default function WatchScreen() {
           shouldPlay={false}
           posterSource={{ uri: m.posterUrl || m.backdropUrl }}
           usePoster
+          onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
+          positionMillis={initialProgress}
         />
       </View>
 
       {/* Movie Info */}
       <View style={styles.info}>
         <Text style={styles.badge}>🎬 PHIM GỐC</Text>
-        <Text style={styles.title}>{m.title}</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>{m.title}</Text>
+          <TouchableOpacity onPress={toggleWatchlist} style={styles.watchlistBtn}>
+            <Ionicons 
+              name={isInWatchlist ? "heart" : "heart-outline"} 
+              size={28} 
+              color={isInWatchlist ? "#E50914" : "#fff"} 
+            />
+          </TouchableOpacity>
+        </View>
         <Text style={styles.meta}>{m.releaseYear} • {m.duration ? `${Math.floor(m.duration / 60)}h ${m.duration % 60}m` : ''}</Text>
         <Text style={styles.description} numberOfLines={4}>{m.description || 'Chưa có mô tả.'}</Text>
       </View>
@@ -175,6 +235,9 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: '900', color: '#fff', marginBottom: 4 },
   meta: { fontSize: 12, color: '#888', marginBottom: 12 },
   description: { fontSize: 13, color: '#aaa', lineHeight: 20 },
+  
+  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  watchlistBtn: { padding: 4 },
 
   section: { paddingHorizontal: 16 },
   sectionTitle: { fontSize: 17, fontWeight: '800', color: '#fff', marginBottom: 14, borderBottomWidth: 1, borderBottomColor: '#1a1a1a', paddingBottom: 10 },

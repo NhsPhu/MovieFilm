@@ -1,15 +1,7 @@
-import React, { useEffect } from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import useAuthStore from '../../src/store/useAuthStore';
 
 export default function TabLayout() {
-  const { loadUser } = useAuthStore();
-
-  useEffect(() => {
-    loadUser();
-  }, []);
-
   return (
     <Tabs
       screenOptions={{
@@ -22,7 +14,7 @@ export default function TabLayout() {
         },
         tabBarActiveTintColor: '#E50914',
         tabBarInactiveTintColor: '#555',
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '700', marginBottom: 2 },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '700', marginBottom: 2 },
       }}
     >
       <Tabs.Screen
@@ -30,6 +22,13 @@ export default function TabLayout() {
         options={{
           title: 'Trang Chủ',
           tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="browse"
+        options={{
+          title: 'Duyệt Phim',
+          tabBarIcon: ({ color, size }) => <Ionicons name="grid-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen

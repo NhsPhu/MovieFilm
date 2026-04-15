@@ -6,15 +6,19 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { movieService } from '../../src/services/movieService';
+import { historyService } from '../../src/services/historyService';
+import useAuthStore from '../../src/store/useAuthStore';
 
 const { width } = Dimensions.get('window');
-
 const CARD_W = width * 0.38;
 const TALL_W = width * 0.55;
+const CONTINUE_W = width * 0.7;
 
 export default function HomeScreen() {
+  const { user } = useAuthStore();
   const [movies, setMovies] = useState([]);
   const [trending, setTrending] = useState([]);
+  const [continueWatching, setContinueWatching] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,7 +37,29 @@ export default function HomeScreen() {
     load();
   }, []);
 
+  // Fetch continue watching when user is available
+  useEffect(() => {
+    if (!user) {
+      setContinueWatching([]);
+      return;
+    }
+    
+    historyService.getWatchHistory()
+      .then(data => {
+        const inProgress = (data || [])
+          .filter(item => !item.isFinished && item.currentTimeSec > 0)
+          .slice(0, 5);
+        setContinueWatching(inProgress);
+      })
+      .catch(() => setContinueWatching([]));
+  }, [user]);
+
   const hero = movies[0];
+
+  const getProgressPercent = (item) => {
+    if (item.isFinished) return 100;
+    return Math.min(Math.floor((item.currentTimeSec / (120 * 60)) * 100) + 5, 95);
+  };
 
   if (loading) {
     return (
@@ -56,6 +82,7 @@ export default function HomeScreen() {
           <View style={styles.heroContent}>
             <Text style={styles.heroGenre}>⚡ ĐANG HOT</Text>
             <Text style={styles.heroTitle} numberOfLines={2}>{hero.title}</Text>
+            <Text style={styles.heroDescription} numberOfLines={3}>{hero.description || ''}</Text>
             <Text style={styles.heroMeta}>{hero.releaseYear} • {hero.duration ? `${Math.floor(hero.duration / 60)}h ${hero.duration % 60}m` : ''}</Text>
             <View style={styles.heroButtons}>
               <TouchableOpacity style={styles.playBtn} onPress={() => router.push(`/watch/${hero.id}`)}>
@@ -67,6 +94,43 @@ export default function HomeScreen() {
             </View>
           </View>
         </View>
+      )}
+
+      {/* Continue Watching Section */}
+      {continueWatching.length > 0 && (
+        <Section title="▶ Đang Xem">
+          <FlatList
+            horizontal
+            data={continueWatching}
+            keyExtractor={(item) => `cw-${item.movieId || item.id}`}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={{ width: CONTINUE_W }}
+                onPress={() => router.push(`/watch/${item.movieId}`)}
+              >
+                <View style={styles.continueCard}>
+                  <Image
+                    source={{ uri: item.backdropUrl || item.posterUrl || '' }}
+                    style={styles.continueImage}
+                    resizeMode="cover"
+                  />
+                  <LinearGradient
+                    colors={['transparent', 'rgba(0,0,0,0.9)']}
+                    style={styles.continueGradient}
+                  >
+                    <Text style={styles.continueBadge}>TIẾP TỤC</Text>
+                    <Text style={styles.continueTitle} numberOfLines={1}>{item.movieTitle || ''}</Text>
+                    <View style={styles.progressBarBg}>
+                      <View style={[styles.progressBarFill, { width: `${getProgressPercent(item)}%` }]} />
+                    </View>
+                  </LinearGradient>
+                </View>
+              </TouchableOpacity>
+            )}
+          />
+        </Section>
       )}
 
       {/* Trending Row */}
@@ -140,8 +204,9 @@ const styles = StyleSheet.create({
   heroImage: { width: '100%', height: '100%', resizeMode: 'cover' },
   heroContent: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20 },
   heroGenre: { fontSize: 10, color: '#E50914', fontWeight: '800', letterSpacing: 2, marginBottom: 8 },
-  heroTitle: { fontSize: 32, fontWeight: '900', color: '#fff', lineHeight: 36, marginBottom: 8 },
-  heroMeta: { fontSize: 12, color: '#aaa', marginBottom: 16 },
+  heroTitle: { fontSize: 32, fontWeight: '900', color: '#fff', lineHeight: 36, marginBottom: 6 },
+  heroDescription: { fontSize: 13, color: '#aaa', lineHeight: 18, marginBottom: 6, maxWidth: '90%' },
+  heroMeta: { fontSize: 12, color: '#888', marginBottom: 16 },
   heroButtons: { flexDirection: 'row', gap: 10 },
   playBtn: {
     backgroundColor: '#E50914', paddingHorizontal: 24, paddingVertical: 12,
@@ -154,6 +219,17 @@ const styles = StyleSheet.create({
     borderRadius: 10, flex: 1, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
   },
   infoBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+
+  // Continue Watching
+  continueCard: { borderRadius: 12, overflow: 'hidden', height: 160, backgroundColor: '#1a1a1a' },
+  continueImage: { width: '100%', height: '100%' },
+  continueGradient: {
+    ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end', padding: 12,
+  },
+  continueBadge: { fontSize: 9, color: '#E50914', fontWeight: '800', letterSpacing: 2, marginBottom: 4 },
+  continueTitle: { fontSize: 15, fontWeight: '800', color: '#fff', marginBottom: 8 },
+  progressBarBg: { height: 3, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 2, overflow: 'hidden' },
+  progressBarFill: { height: '100%', backgroundColor: '#E50914' },
 
   section: { marginTop: 28 },
   sectionTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 14, paddingHorizontal: 16 },
