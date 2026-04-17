@@ -17,9 +17,9 @@ export default function RootLayout() {
 
     const inAuthGroup = segments[0] === 'login' || segments[0] === 'register';
 
-    if (!token && !inAuthGroup) {
-      router.replace('/login');
-    } else if (token && inAuthGroup) {
+    // Only redirect authenticated users away from auth screens
+    // Guests are allowed to browse freely; Profile tab handles the guest state
+    if (token && inAuthGroup) {
       router.replace('/(tabs)');
     }
   }, [token, segments, isLoading]);
