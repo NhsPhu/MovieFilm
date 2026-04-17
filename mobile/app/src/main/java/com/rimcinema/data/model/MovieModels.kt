@@ -5,6 +5,7 @@ data class MovieDTO(
     val title: String?,
     val description: String?,
     val posterUrl: String?,
+    val backdropUrl: String?,
     val releaseYear: Int?,
     val durationSec: Int?,
     val viewsCount: Long?,
@@ -20,4 +21,31 @@ data class PageResponse<T>(
     val totalPages: Int,
     val number: Int,
     val size: Int
+)
+
+data class WatchHistoryDTO(
+    val id: Long?,
+    val movieId: Long,
+    val movieTitle: String?,
+    val posterUrl: String?,
+    val currentTimeSec: Long?,
+    val isFinished: Boolean?,
+    val lastWatchedAt: String?,
+    val deviceType: String?
+)
+
+data class WatchlistItemDTO(
+    val id: Long,
+    val title: String?,
+    val posterUrl: String?,
+    val backdropUrl: String?,
+    val releaseYear: Int?,
+    val avgRating: Double?,
+    val genres: List<String>?
+)
+
+data class UpdateProgressRequest(
+    val movieId: Long,
+    val currentTime: Long,
+    val device: String = "ANDROID"
 )

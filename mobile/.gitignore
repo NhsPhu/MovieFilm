@@ -1,0 +1,19 @@
+# Android build outputs
+app/build/
+.gradle/
+
+# Expo / React Native
+node_modules/
+.expo/
+dist/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+
+# OS files
+.DS_Store
+Thumbs.db

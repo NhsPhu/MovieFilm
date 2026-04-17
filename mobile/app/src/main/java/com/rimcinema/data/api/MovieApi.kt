@@ -34,4 +34,27 @@ interface MovieApi {
         @Path("movieId") movieId: Long,
         @Body request: RatingRequest
     ): Response<RatingDTO>
+
+    // ── Watch History ────────────────────────────────────────────────────────
+    @GET("history")
+    suspend fun getWatchHistory(): Response<List<WatchHistoryDTO>>
+
+    @POST("history")
+    suspend fun updateProgress(@Body request: UpdateProgressRequest): Response<WatchHistoryDTO>
+
+    @DELETE("history")
+    suspend fun clearHistory(): Response<Map<String, String>>
+
+    // ── Watchlist ────────────────────────────────────────────────────────────
+    @GET("watchlist")
+    suspend fun getWatchlist(): Response<List<WatchlistItemDTO>>
+
+    @POST("watchlist/{movieId}")
+    suspend fun addToWatchlist(@Path("movieId") movieId: Long): Response<Map<String, Any>>
+
+    @DELETE("watchlist/{movieId}")
+    suspend fun removeFromWatchlist(@Path("movieId") movieId: Long): Response<Map<String, Any>>
+
+    @GET("watchlist/check/{movieId}")
+    suspend fun checkInWatchlist(@Path("movieId") movieId: Long): Response<Map<String, Boolean>>
 }

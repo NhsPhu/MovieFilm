@@ -27,7 +27,7 @@ fun AppNavigation(
     val bottomBarRoutes = listOf("home", "search", "profile")
     val showBottomBar = currentRoute in bottomBarRoutes
 
-    // Xử lý chuyển hướng khi trạng thái đăng nhập thay đổi (tránh crash recomposition)
+    // Redirect on auth state change
     LaunchedEffect(isLoggedIn) {
         val current = navController.currentDestination?.route
         if (isLoggedIn && current == "login") {
@@ -69,37 +69,39 @@ fun AppNavigation(
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = "login",  // Luôn bắt đầu từ login, LaunchedEffect xử lý redirect
+            startDestination = "login",
             modifier = Modifier.padding(innerPadding)
         ) {
+            // ── Auth ──────────────────────────────────────────────────────────
             composable("login") {
-                LoginScreen(authViewModel = authViewModel, onLoginSuccess = {
-                    // Navigation đã được xử lý bởi LaunchedEffect
-                })
+                LoginScreen(authViewModel = authViewModel, onLoginSuccess = {})
             }
+
+            // ── Main Tabs ─────────────────────────────────────────────────────
             composable("home") {
                 HomeScreen(
-                    onMovieClick = { movieId ->
-                        navController.navigate("movie/$movieId")
-                    }
+                    onMovieClick = { movieId -> navController.navigate("movie/$movieId") }
                 )
             }
             composable("search") {
                 SearchScreen(
-                    onMovieClick = { movieId ->
-                        navController.navigate("movie/$movieId")
-                    }
+                    onMovieClick = { movieId -> navController.navigate("movie/$movieId") }
                 )
             }
             composable("profile") {
                 ProfileScreen(
                     sessionManager = sessionManager,
                     authViewModel = authViewModel,
-                    onLogout = {
-                        // Navigation đã được xử lý bởi LaunchedEffect
-                    }
+                    onLogout = {},
+                    onNavigateToHistory = { navController.navigate("history") },
+                    onNavigateToWatchlist = { navController.navigate("watchlist") },
+                    onNavigateToPersonalInfo = { navController.navigate("personal_info") },
+                    onNavigateToSettings = { navController.navigate("settings_screen") },
+                    onNavigateToHelp = { navController.navigate("help") }
                 )
             }
+
+            // ── Movie ─────────────────────────────────────────────────────────
             composable(
                 "movie/{id}",
                 arguments = listOf(navArgument("id") { type = NavType.LongType })
@@ -122,6 +124,32 @@ fun AppNavigation(
                     sessionManager = sessionManager,
                     onBack = { navController.popBackStack() }
                 )
+            }
+
+            // ── Profile sub-screens ───────────────────────────────────────────
+            composable("history") {
+                HistoryScreen(
+                    onBack = { navController.popBackStack() },
+                    onWatchMovie = { movieId -> navController.navigate("watch/$movieId") }
+                )
+            }
+            composable("watchlist") {
+                WatchlistScreen(
+                    onBack = { navController.popBackStack() },
+                    onMovieClick = { movieId -> navController.navigate("movie/$movieId") }
+                )
+            }
+            composable("personal_info") {
+                PersonalInfoScreen(
+                    sessionManager = sessionManager,
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable("settings_screen") {
+                SettingsScreen(onBack = { navController.popBackStack() })
+            }
+            composable("help") {
+                HelpScreen(onBack = { navController.popBackStack() })
             }
         }
     }
