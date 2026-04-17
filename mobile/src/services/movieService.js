@@ -9,10 +9,15 @@ export const movieService = {
   searchMovies: (query, page = 0, size = 20) =>
     api.get('/movies/search', { params: { q: query, page, size } }).then(r => r.data),
 
-  getTrending: () => api.get('/movies/trending').then(r => r.data),
-
   getPopularMovies: (limit = 10) =>
     api.get('/movies/popular', { params: { limit } }).then(r => r.data),
+
+  // AI-powered recommendations — fallback to popular automatically in backend
+  getRecommendations: (limit = 10) =>
+    api.get('/movies/recommended', { params: { limit } }).then(r => r.data),
+
+  getRelatedMovies: (movieId, limit = 6) =>
+    api.get(`/movies/${movieId}/related`, { params: { limit } }).then(r => r.data),
 
   getGenres: () => api.get('/genres').then(r => r.data),
 
@@ -22,7 +27,11 @@ export const movieService = {
   filterMovies: (params) =>
     api.get('/movies/filter', { params }).then(r => r.data),
 
-  getStreamUrl: (id) => `${api.defaults.baseURL}/movies/${id}/stream`,
+  // Stream URL — uses the API base (strips /api to build stream path)
+  getStreamUrl: (id) => {
+    const base = api.defaults.baseURL.replace('/api', '');
+    return `${base}/api/stream/${id}/master.m3u8`;
+  },
 };
 
 export const authService = {
