@@ -8,16 +8,21 @@ export default function HomePage() {
     const { user } = useAuthStore()
     const [movies, setMovies] = useState([])
     const [watchHistory, setWatchHistory] = useState([])
+    const [recommended, setRecommended] = useState([])
 
     useEffect(() => {
         movieService.getMovies(0, 20).then(data => setMovies(data.content || data || [])).catch(() => setMovies([]))
         
+        // Fetch AI recommendations (works for guests too — returns popular as fallback)
+        movieService.getRecommendations(10)
+            .then(data => setRecommended(Array.isArray(data) ? data : []))
+            .catch(() => setRecommended([]))
+        
         if (user) {
             historyService.getWatchHistory()
                 .then(data => {
-                    // Filter out finished movies for continue watching
                     const inProgress = (data || []).filter(item => !item.isFinished && item.currentTimeSec > 0)
-                    setWatchHistory(inProgress.slice(0, 3)) // top 3
+                    setWatchHistory(inProgress.slice(0, 3))
                 })
                 .catch(() => setWatchHistory([]))
         } else {
@@ -147,6 +152,46 @@ export default function HomePage() {
                             </Link>
                             )}
                         </div>
+                    </div>
+                </section>
+                )}
+
+                {/* AI Recommendations — Gợi Ý Cho Bạn */}
+                {recommended.length > 0 && (
+                <section>
+                    <div className="flex justify-between items-end mb-4 md:mb-6">
+                        <div>
+                            <span className="text-[10px] font-black tracking-[0.2em] text-tertiary uppercase block mb-1">✨ Trí Tuệ Nhân Tạo</span>
+                            <h2 className="text-xl md:text-2xl font-headline font-bold tracking-tight text-on-surface">
+                                {user ? 'Gợi Ý Cho Bạn' : 'Có Thể Bạn Thích'}
+                            </h2>
+                        </div>
+                        <Link className="text-[10px] md:text-xs font-bold text-outline hover:text-white transition-colors" to="/browse">
+                            XEM TẤT CẢ
+                        </Link>
+                    </div>
+                    <div className="flex gap-4 md:gap-6 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory">
+                        {recommended.map((movie, i) => (
+                            <Link key={movie?.id || i} to={movie ? `/movie/${movie.id}` : '#'}
+                                className="group relative flex-none w-[35vw] sm:w-36 md:w-48 aspect-[2/3] bg-surface-container rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:z-20 snap-start"
+                            >
+                                <img alt={movie?.title || ''} className="w-full h-full object-cover" src={movie?.posterUrl || ''}/>
+                                {/* AI Badge */}
+                                <div className="absolute top-2 left-2 bg-tertiary/90 backdrop-blur-sm text-on-tertiary text-[8px] font-black px-2 py-0.5 rounded-full flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-[10px]" style={{fontVariationSettings: "'FILL' 1"}}>auto_awesome</span>
+                                    AI
+                                </div>
+                                {movie?.avgRating > 0 && <div className="absolute top-2 right-2 bg-primary-container text-on-primary-container font-black text-[10px] px-1.5 py-0.5 rounded shadow-xl">{movie.avgRating.toFixed(1)}</div>}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-2 md:p-3">
+                                    <h4 className="text-[10px] md:text-xs font-bold text-white line-clamp-2 leading-tight">{movie?.title || ''}</h4>
+                                </div>
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3">
+                                    <button className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white text-black flex items-center justify-center hover:bg-primary transition-colors">
+                                        <span className="material-symbols-outlined text-sm md:text-base" style={{fontVariationSettings: "'FILL' 1"}}>play_arrow</span>
+                                    </button>
+                                </div>
+                            </Link>
+                        ))}
                     </div>
                 </section>
                 )}

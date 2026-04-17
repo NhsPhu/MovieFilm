@@ -7,18 +7,27 @@ import com.movieplatform.entity.Movie;
 import com.movieplatform.exception.ResourceNotFoundException;
 import com.movieplatform.repository.GenreRepository;
 import com.movieplatform.repository.MovieRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -26,11 +35,19 @@ import java.util.stream.Collectors;
 @Service
 public class MovieService {
 
+    private static final Logger logger = LoggerFactory.getLogger(MovieService.class);
+
+    @Value("${ai.service.url:http://ai-service:8001}")
+    private String aiServiceUrl;
+
     @Autowired
     private MovieRepository movieRepository;
 
     @Autowired
     private GenreRepository genreRepository;
+
+    @Autowired
+    private RestTemplate restTemplate;
 
     @Transactional
     @CacheEvict(value = {"movies", "popularMovies"}, allEntries = true)
@@ -145,6 +162,61 @@ public class MovieService {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortProperty));
         return movieRepository.findByFilters(query, genreId, year, pageable).map(this::convertToDTO);
+    }
+
+    /**
+     * Get AI-powered personalized recommendations for a user.
+     * Calls the Python FastAPI AI service (Collaborative Filtering).
+     * Falls back to popular movies if AI service is unavailable or user has no history.
+     */
+    public List<MovieDTO> getRecommendedMovies(Long userId, int limit) {
+        try {
+            String url = aiServiceUrl + "/recommend/" + userId + "?limit=" + limit;
+            logger.info("Calling AI service for user {}: {}", userId, url);
+
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    null,
+                    new ParameterizedTypeReference<Map<String, Object>>() {}
+            );
+
+            if (response.getBody() == null) return getPopularMovies(limit);
+
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> recommendations =
+                    (List<Map<String, Object>>) response.getBody().get("recommendations");
+
+            if (recommendations == null || recommendations.isEmpty()) {
+                logger.info("AI returned empty recommendations for user {}, falling back to popular", userId);
+                return getPopularMovies(limit);
+            }
+
+            // Extract movie IDs from AI response and fetch full movie data
+            List<Long> movieIds = recommendations.stream()
+                    .map(rec -> Long.valueOf(rec.get("movie_id").toString()))
+                    .collect(Collectors.toList());
+
+            List<MovieDTO> result = new ArrayList<>();
+            for (Long movieId : movieIds) {
+                try {
+                    Movie movie = movieRepository.findById(movieId).orElse(null);
+                    if (movie != null && movie.getStatus() == Movie.ProcessingStatus.READY) {
+                        result.add(convertToDTO(movie));
+                    }
+                } catch (Exception e) {
+                    logger.warn("Could not load movie {} from AI recommendations", movieId);
+                }
+            }
+
+            if (result.isEmpty()) return getPopularMovies(limit);
+            logger.info("AI returned {} recommendations for user {}", result.size(), userId);
+            return result;
+
+        } catch (Exception e) {
+            logger.error("AI service unavailable for user {}: {}. Falling back to popular movies.", userId, e.getMessage());
+            return getPopularMovies(limit);
+        }
     }
 
     public List<MovieDTO> getRelatedMovies(Long movieId, int limit) {

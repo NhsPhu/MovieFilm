@@ -19,6 +19,7 @@ export default function HomeScreen() {
   const [movies, setMovies] = useState([]);
   const [trending, setTrending] = useState([]);
   const [continueWatching, setContinueWatching] = useState([]);
+  const [recommended, setRecommended] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -35,6 +36,11 @@ export default function HomeScreen() {
       }
     };
     load();
+
+    // Fetch AI recommendations in parallel
+    movieService.getRecommendations(10)
+      .then(data => setRecommended(Array.isArray(data) ? data : []))
+      .catch(() => setRecommended([]));
   }, []);
 
   // Fetch continue watching when user is available
@@ -158,6 +164,39 @@ export default function HomeScreen() {
         />
       </Section>
 
+      {/* AI Recommendations Section */}
+      {recommended.length > 0 && (
+        <Section title={user ? '✨ Dành Riêng Cho Bạn' : '✨ Có Thể Bạn Thích'}>
+          <FlatList
+            horizontal
+            data={recommended}
+            keyExtractor={(item) => `ai-${item.id}`}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={{ width: CARD_W }}
+                onPress={() => router.push(`/movie/${item.id}`)}
+              >
+                <View style={{ position: 'relative' }}>
+                  <Image
+                    source={{ uri: item.posterUrl || item.backdropUrl }}
+                    style={[styles.card, { width: CARD_W, height: CARD_W * 1.5 }]}
+                    resizeMode="cover"
+                  />
+                  {/* AI Badge */}
+                  <View style={styles.aiBadge}>
+                    <Text style={styles.aiBadgeText}>✦ AI</Text>
+                  </View>
+                </View>
+                <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
+                {item.avgRating > 0 && <Text style={styles.cardRating}>⭐ {item.avgRating.toFixed(1)}</Text>}
+              </TouchableOpacity>
+            )}
+          />
+        </Section>
+      )}
+
       {/* Top Rated Row */}
       <Section title="🏆 Đánh Giá Cao">
         <FlatList
@@ -236,4 +275,12 @@ const styles = StyleSheet.create({
   card: { borderRadius: 10, backgroundColor: '#1a1a1a' },
   cardTitle: { fontSize: 12, color: '#ccc', marginTop: 6, fontWeight: '600' },
   cardRating: { fontSize: 11, color: '#f5a623', marginTop: 2 },
+
+  // AI badge overlay on recommendation cards
+  aiBadge: {
+    position: 'absolute', top: 6, left: 6,
+    backgroundColor: 'rgba(139, 92, 246, 0.9)', paddingHorizontal: 6, paddingVertical: 2,
+    borderRadius: 10,
+  },
+  aiBadgeText: { color: '#fff', fontSize: 9, fontWeight: '900', letterSpacing: 0.5 },
 });

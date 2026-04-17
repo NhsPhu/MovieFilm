@@ -9,10 +9,25 @@ export default function MovieDetailPage() {
 
     useEffect(() => {
         movieService.getMovie(id).then(setMovie).catch(console.error)
-        movieService.getMovies(0, 10).then(data => {
-            const all = data.content || data || []
-            setRecommended(all.filter(m => String(m.id) !== String(id)).slice(0, 5))
-        }).catch(() => {})
+
+        // Try AI recommendations first, then fall back to related by genre
+        movieService.getRecommendations(8)
+            .then(data => {
+                const filtered = (Array.isArray(data) ? data : []).filter(m => String(m.id) !== String(id))
+                if (filtered.length > 0) {
+                    setRecommended(filtered.slice(0, 6))
+                } else {
+                    // Fallback: related movies by genre from backend
+                    movieService.getRelatedMovies(id, 6)
+                        .then(related => setRecommended(related || []))
+                        .catch(() => {})
+                }
+            })
+            .catch(() => {
+                movieService.getRelatedMovies(id, 6)
+                    .then(related => setRecommended(related || []))
+                    .catch(() => {})
+            })
     }, [id])
 
     const m = movie || {}

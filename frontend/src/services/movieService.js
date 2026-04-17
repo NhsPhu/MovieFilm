@@ -25,6 +25,22 @@ export const movieService = {
         return response.data
     },
 
+    // AI-powered personalized recommendations (falls back to popular for guests)
+    getRecommendations: async (limit = 10) => {
+        const response = await api.get('/movies/recommended', { params: { limit } })
+        return response.data
+    },
+
+    filterMovies: async (params) => {
+        const response = await api.get('/movies/filter', { params })
+        return response.data
+    },
+
+    getRelatedMovies: async (movieId, limit = 6) => {
+        const response = await api.get(`/movies/${movieId}/related`, { params: { limit } })
+        return response.data
+    },
+
     getMoviesByGenre: async (genreId, limit = 10) => {
         const response = await api.get(`/movies/genre/${genreId}`, { params: { limit } })
         return response.data

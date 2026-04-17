@@ -5,6 +5,8 @@ import com.movieplatform.service.MovieService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -40,6 +42,22 @@ public class MovieController {
             @RequestParam(defaultValue = "10") int limit) {
         List<MovieDTO> movies = movieService.getPopularMovies(limit);
         return ResponseEntity.ok(movies);
+    }
+
+    @GetMapping("/recommended")
+    public ResponseEntity<List<MovieDTO>> getRecommendedMovies(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(defaultValue = "10") int limit) {
+        // Extract userId from the authenticated user's username (which is the user ID in our JWT)
+        try {
+            Long userId = Long.parseLong(userDetails.getUsername());
+            List<MovieDTO> movies = movieService.getRecommendedMovies(userId, limit);
+            return ResponseEntity.ok(movies);
+        } catch (Exception e) {
+            // If not authenticated or user ID can't be parsed, return popular movies
+            List<MovieDTO> movies = movieService.getPopularMovies(limit);
+            return ResponseEntity.ok(movies);
+        }
     }
 
     @GetMapping("/genre/{genreId}")
