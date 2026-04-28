@@ -1,15 +1,17 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Filter, Loader2, Play } from 'lucide-react'
 import api from '../services/api'
 import { movieService } from '../services/movieService'
 
-export default function BrowsePage() {
+export default function BrowsePage({ movieType = null, title = "Tất Cả Phim" }) {
     const [genres, setGenres] = useState([])
     const [movies, setMovies] = useState([])
     
+    const [searchParams] = useSearchParams()
+    
     // Filters State
-    const [selectedGenre, setSelectedGenre] = useState('')
+    const [selectedGenre, setSelectedGenre] = useState(searchParams.get('genre') || '')
     const [selectedYear, setSelectedYear] = useState('')
     const [sortBy, setSortBy] = useState('newest')
     
@@ -32,6 +34,7 @@ export default function BrowsePage() {
             if (selectedGenre) params.append('genreId', selectedGenre)
             if (selectedYear) params.append('year', selectedYear)
             params.append('sortBy', sortBy)
+            if (movieType) params.append('type', movieType)
             params.append('page', page - 1)
             params.append('size', 20)
 
@@ -51,6 +54,12 @@ export default function BrowsePage() {
     }, [selectedGenre, selectedYear, sortBy])
 
     useEffect(() => {
+        if (searchParams.get('genre')) {
+            setSelectedGenre(searchParams.get('genre'))
+        }
+    }, [searchParams])
+
+    useEffect(() => {
         fetchFilteredMovies()
     }, [fetchFilteredMovies])
 
@@ -60,7 +69,7 @@ export default function BrowsePage() {
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
                 <div>
                     <span className="text-[10px] font-black tracking-[0.2em] text-primary uppercase block mb-1">Khám Phá</span>
-                    <h1 className="text-2xl md:text-4xl font-headline font-bold text-white tracking-tight">Tất Cả Phim</h1>
+                    <h1 className="text-2xl md:text-4xl font-headline font-bold text-white tracking-tight">{title}</h1>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">

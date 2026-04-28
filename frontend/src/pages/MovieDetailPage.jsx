@@ -1,11 +1,17 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { movieService } from '../services/movieService'
+import TrailerModal from '../components/TrailerModal'
+import ShareModal from '../components/ShareModal'
+import ReportModal from '../components/ReportModal'
 
 export default function MovieDetailPage() {
     const { id } = useParams()
     const [movie, setMovie] = useState(null)
     const [recommended, setRecommended] = useState([])
+    const [isTrailerOpen, setIsTrailerOpen] = useState(false)
+    const [isShareOpen, setIsShareOpen] = useState(false)
+    const [isReportOpen, setIsReportOpen] = useState(false)
 
     useEffect(() => {
         movieService.getMovie(id).then(setMovie).catch(console.error)
@@ -78,7 +84,7 @@ export default function MovieDetailPage() {
                             <span className="material-symbols-outlined" style={{fontVariationSettings: "'FILL' 1"}}>play_arrow</span>
                             Xem Ngay
                         </Link>
-                        <button className="w-full sm:w-auto flex items-center justify-center gap-3 bg-surface-container-high/60 backdrop-blur-md border border-outline-variant/30 text-on-surface px-8 py-3.5 md:py-4 rounded-xl font-headline font-bold text-base md:text-lg hover:bg-surface-container-highest transition-all">
+                        <button onClick={() => setIsTrailerOpen(true)} className="w-full sm:w-auto flex items-center justify-center gap-3 bg-surface-container-high/60 backdrop-blur-md border border-outline-variant/30 text-on-surface px-8 py-3.5 md:py-4 rounded-xl font-headline font-bold text-base md:text-lg hover:bg-surface-container-highest transition-all">
                             <span className="material-symbols-outlined">smart_display</span>
                             Xem Trailer
                         </button>
@@ -105,9 +111,15 @@ export default function MovieDetailPage() {
                         <div className="pt-4 border-t border-outline-variant/10">
                             <div className="flex items-center justify-between">
                                 <h4 className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Phân Loại</h4>
-                                <span className="px-2 py-1 bg-surface-container-highest rounded text-xs font-bold border border-outline-variant">12+</span>
+                                <span className="px-2 py-1 bg-surface-container-highest rounded text-xs font-bold border border-outline-variant">{m.ageRating || 'PG'}</span>
                             </div>
-                            <p className="text-xs text-on-surface-variant mt-2 leading-relaxed italic">Phù hợp với trẻ em từ 12 tuổi trở lên.</p>
+                            <p className="text-xs text-on-surface-variant mt-2 leading-relaxed italic">
+                                {m.ageRating === 'T18' ? 'Phù hợp với khán giả từ 18 tuổi trở lên.' : 
+                                 m.ageRating === 'T16' ? 'Phù hợp với khán giả từ 16 tuổi trở lên.' : 
+                                 m.ageRating === 'PG13' ? 'Phù hợp với trẻ em từ 13 tuổi trở lên.' : 
+                                 m.ageRating === 'G' ? 'Phù hợp với mọi lứa tuổi.' :
+                                 'Phân loại độ tuổi chưa được xác định rõ.'}
+                            </p>
                         </div>
                         <div className="pt-4 border-t border-outline-variant/10">
                             <h4 className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] mb-3">Âm Thanh / Phụ Đề</h4>
@@ -118,8 +130,8 @@ export default function MovieDetailPage() {
                         </div>
                     </div>
                     <div className="flex flex-col gap-3">
-                        <button className="w-full py-3 text-center border border-outline-variant/30 rounded-xl hover:bg-surface-container transition-all font-label text-xs font-bold uppercase tracking-widest">Chia Sẻ Phim</button>
-                        <button className="w-full py-3 text-center border border-outline-variant/30 rounded-xl hover:bg-surface-container transition-all font-label text-xs font-bold uppercase tracking-widest">Báo Lỗi</button>
+                        <button onClick={() => setIsShareOpen(true)} className="w-full py-3 text-center border border-outline-variant/30 rounded-xl hover:bg-surface-container transition-all font-label text-xs font-bold uppercase tracking-widest">Chia Sẻ Phim</button>
+                        <button onClick={() => setIsReportOpen(true)} className="w-full py-3 text-center border border-outline-variant/30 rounded-xl hover:bg-surface-container transition-all font-label text-xs font-bold uppercase tracking-widest">Báo Lỗi</button>
                     </div>
                 </aside>
             </div>
@@ -147,6 +159,25 @@ export default function MovieDetailPage() {
                     </div>
                 </section>
             )}
+
+            {/* Modals */}
+            <TrailerModal 
+                isOpen={isTrailerOpen} 
+                onClose={() => setIsTrailerOpen(false)} 
+                trailerUrl={m.trailerUrl || ''} 
+                movieTitle={m.title || ''} 
+            />
+            <ShareModal 
+                isOpen={isShareOpen} 
+                onClose={() => setIsShareOpen(false)} 
+                movieTitle={m.title || ''} 
+            />
+            <ReportModal 
+                isOpen={isReportOpen} 
+                onClose={() => setIsReportOpen(false)} 
+                movieId={id} 
+                movieTitle={m.title || ''} 
+            />
         </main>
     )
 }

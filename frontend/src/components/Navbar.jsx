@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import useAuthStore from '../store/useAuthStore'
+import NotificationPanel from './NotificationPanel'
 
 export default function Navbar() {
     const { user, token, logout } = useAuthStore()
@@ -25,16 +26,16 @@ export default function Navbar() {
                     <div className="hidden md:flex gap-6 items-center">
                         <Link className="font-headline font-bold tracking-tight text-white border-b-2 border-[#E50914] pb-1" to="/">Trang Chủ</Link>
                         <Link className="font-headline font-bold tracking-tight text-gray-400 hover:text-white transition-colors" to="/browse">Duyệt Phim</Link>
-                        <Link className="font-headline font-bold tracking-tight text-gray-400 hover:text-white transition-colors" to="/search">Phim Bộ</Link>
-                        <Link className="font-headline font-bold tracking-tight text-gray-400 hover:text-white transition-colors" to="/search">Phim Lẻ</Link>
-                        <Link className="font-headline font-bold tracking-tight text-gray-400 hover:text-white transition-colors" to="/search">Mới & Phổ Biến</Link>
+                        <Link className="font-headline font-bold tracking-tight text-gray-400 hover:text-white transition-colors" to="/series">Phim Bộ</Link>
+                        <Link className="font-headline font-bold tracking-tight text-gray-400 hover:text-white transition-colors" to="/films">Phim Lẻ</Link>
+                        <Link className="font-headline font-bold tracking-tight text-gray-400 hover:text-white transition-colors" to="/new-popular">Mới & Phổ Biến</Link>
                         <Link className="font-headline font-bold tracking-tight text-gray-400 hover:text-white transition-colors" to="/profile">Danh Sách</Link>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-4 md:gap-6">
                     <Link to="/search"><span className="material-symbols-outlined cursor-pointer hover:scale-105 transition-transform duration-300 text-xl md:text-2xl">search</span></Link>
-                    <span className="material-symbols-outlined cursor-pointer hover:scale-105 transition-transform duration-300 text-xl md:text-2xl hidden sm:block">notifications</span>
+                    <NotificationPanel />
                     {isAuthenticated ? (
                         <div className="relative group">
                             <div className="w-8 h-8 rounded-lg overflow-hidden border border-outline-variant/30 active:opacity-80 transition-all cursor-pointer bg-surface-container-high flex items-center justify-center">
@@ -72,9 +73,9 @@ export default function Navbar() {
                         <div className="flex-1 overflow-y-auto py-4 px-3 flex flex-col gap-2">
                             <Link onClick={() => setIsMobileMenuOpen(false)} to="/" className="px-4 py-3 rounded-xl bg-surface-container-low text-white font-headline font-bold text-sm tracking-wide">Trang Chủ</Link>
                             <Link onClick={() => setIsMobileMenuOpen(false)} to="/browse" className="px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-low hover:text-white font-headline font-bold text-sm tracking-wide transition-all">Duyệt Phim</Link>
-                            <Link onClick={() => setIsMobileMenuOpen(false)} to="/search" className="px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-low hover:text-white font-headline font-bold text-sm tracking-wide transition-all">Phim Bộ</Link>
-                            <Link onClick={() => setIsMobileMenuOpen(false)} to="/search" className="px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-low hover:text-white font-headline font-bold text-sm tracking-wide transition-all">Phim Lẻ</Link>
-                            <Link onClick={() => setIsMobileMenuOpen(false)} to="/search" className="px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-low hover:text-white font-headline font-bold text-sm tracking-wide transition-all">Mới & Phổ Biến</Link>
+                            <Link onClick={() => setIsMobileMenuOpen(false)} to="/series" className="px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-low hover:text-white font-headline font-bold text-sm tracking-wide transition-all">Phim Bộ</Link>
+                            <Link onClick={() => setIsMobileMenuOpen(false)} to="/films" className="px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-low hover:text-white font-headline font-bold text-sm tracking-wide transition-all">Phim Lẻ</Link>
+                            <Link onClick={() => setIsMobileMenuOpen(false)} to="/new-popular" className="px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-low hover:text-white font-headline font-bold text-sm tracking-wide transition-all">Mới & Phổ Biến</Link>
                             <Link onClick={() => setIsMobileMenuOpen(false)} to="/profile" className="px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-container-low hover:text-white font-headline font-bold text-sm tracking-wide transition-all">Danh Sách Của Tôi</Link>
                         </div>
                     </div>

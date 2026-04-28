@@ -55,7 +55,7 @@ export default function Sidebar() {
                 {genres.map(genre => (
                     <Link
                         key={genre.id}
-                        to={`/search?genre=${genre.id}`}
+                        to={`/browse?genre=${genre.id}`}
                         onClick={() => setActiveGenre(genre.id)}
                         className={activeGenre === genre.id
                             ? "flex items-center gap-3 px-6 py-2.5 text-[#FFB4AA] font-bold bg-[#2A2A2A] rounded-r-full translate-x-1 duration-200"
@@ -68,7 +68,7 @@ export default function Sidebar() {
                 ))}
             </nav>
             <div className="mt-auto px-6 pt-4">
-                <Link to="/search" className="block w-full py-2 text-center border border-outline-variant/30 text-xs font-bold uppercase tracking-widest hover:bg-surface-container-highest transition-colors rounded">
+                <Link to="/browse" className="block w-full py-2 text-center border border-outline-variant/30 text-xs font-bold uppercase tracking-widest hover:bg-surface-container-highest transition-colors rounded">
                     Tất Cả Phim
                 </Link>
             </div>

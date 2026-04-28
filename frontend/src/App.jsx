@@ -80,6 +80,9 @@ export default function App() {
                         <Route path="/" element={<HomePage />} />
                         <Route path="/search" element={<SearchPage />} />
                         <Route path="/browse" element={<BrowsePage />} />
+                        <Route path="/series" element={<BrowsePage movieType="SERIES" title="Phim Bộ" />} />
+                        <Route path="/films" element={<BrowsePage movieType="SINGLE" title="Phim Lẻ" />} />
+                        <Route path="/new-popular" element={<BrowsePage title="Mới & Phổ Biến" />} />
                     </Route>
 
                     {/* 404 catch-all */}

@@ -12,6 +12,8 @@ export default function WatchPage() {
     const [movie, setMovie] = useState(null)
     const [related, setRelated] = useState([])
     const [streamError, setStreamError] = useState(false)
+    const [hlsLevels, setHlsLevels] = useState([])
+    const [currentQuality, setCurrentQuality] = useState(-1)
     const [ratings, setRatings] = useState([])
     const [myScore, setMyScore] = useState(0)
     const [myReview, setMyReview] = useState('')
@@ -159,7 +161,8 @@ export default function WatchPage() {
             hls.loadSource(streamUrl)
             hls.attachMedia(videoRef.current)
 
-            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+                setHlsLevels(data.levels || [])
                 videoRef.current.play().catch(() => {})
             })
 
@@ -247,7 +250,26 @@ export default function WatchPage() {
                                 </div>
                                 <h1 className="font-headline text-3xl md:text-4xl font-extrabold tracking-tighter line-clamp-2">{m.title || 'Movie Title'}</h1>
                             </div>
-                            <div className="flex gap-3 shrink-0">
+                            <div className="flex flex-wrap gap-3 shrink-0">
+                                {hlsLevels.length > 0 && (
+                                    <div className="relative group">
+                                        <select 
+                                            value={currentQuality}
+                                            onChange={(e) => {
+                                                const val = parseInt(e.target.value, 10);
+                                                if (hlsRef.current) hlsRef.current.currentLevel = val;
+                                                setCurrentQuality(val);
+                                            }}
+                                            className="h-10 px-4 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-bright font-headline font-bold text-sm transition-all outline-none border border-outline-variant/20 appearance-none cursor-pointer pr-8"
+                                        >
+                                            <option value="-1">Tự Động (Auto)</option>
+                                            {hlsLevels.map((level, idx) => (
+                                                <option key={idx} value={idx}>{level.height}p</option>
+                                            ))}
+                                        </select>
+                                        <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-sm">expand_more</span>
+                                    </div>
+                                )}
                                 <button
                                     onClick={toggleWatchlist} 
                                     disabled={isWatchlistLoading}
@@ -261,7 +283,7 @@ export default function WatchPage() {
                                     </span>
                                     {isInWatchlist ? 'Đã Thêm' : 'Danh Sách'}
                                 </button>
-                                <button className="h-10 px-5 rounded-full bg-tertiary-container text-white font-headline font-bold text-sm hover:brightness-110 transition-all flex items-center gap-2 shadow-lg shadow-tertiary-container/20">
+                                <button onClick={() => document.getElementById('review-section')?.scrollIntoView({ behavior: 'smooth' })} className="h-10 px-5 rounded-full bg-tertiary-container text-white font-headline font-bold text-sm hover:brightness-110 transition-all flex items-center gap-2 shadow-lg shadow-tertiary-container/20">
                                     <span className="material-symbols-outlined text-lg" style={{fontVariationSettings: "'FILL' 1"}}>thumb_up</span>
                                     Đánh Giá
                                 </button>
@@ -296,7 +318,7 @@ export default function WatchPage() {
                     </div>
 
                     {/* Comment Section */}
-                    <section className="mt-2 md:mt-6 space-y-6 px-4 md:px-0">
+                    <section id="review-section" className="mt-2 md:mt-6 space-y-6 px-4 md:px-0">
                         <div className="flex items-center justify-between border-b border-outline-variant/20 pb-4">
                             <h3 className="font-headline text-xl font-bold flex items-center gap-3">
                                 Bình Luận & Đánh Giá <span className="text-on-surface-variant font-light text-base">({ratings.length})</span>

@@ -34,19 +34,7 @@ export default function HomePage() {
     const trending = movies.slice(0, 5)
     const topRated = movies.slice(0, 6)
 
-    // Fallback if no real history
-    const continueWatching = watchHistory.length > 0 
-        ? watchHistory 
-        : movies.filter(m => m.id !== hero?.id).slice(3, 6).map(m => ({
-            movieId: m.id,
-            movieTitle: m.title,
-            posterUrl: m.posterUrl,
-            backdropUrl: m.backdropUrl,
-            currentTimeSec: Math.random() * 2000, 
-            isFinished: false,
-            // Add a mock property to distinguish mock from real
-            isMock: true 
-        }))
+    const continueWatching = watchHistory;
 
     const getProgressPercent = (item) => {
         return item.isFinished ? 100 : Math.min(Math.floor((item.currentTimeSec / (120*60)) * 100) + 5, 95)
