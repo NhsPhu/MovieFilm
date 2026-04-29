@@ -41,13 +41,7 @@ export default function Sidebar() {
     return (
         <aside className="h-full w-64 fixed left-0 top-0 pt-24 bg-[#201F1F] flex flex-col gap-4 py-8 pr-4 shadow-2xl shadow-black/50 z-40 hidden xl:flex">
             <div className="px-6 mb-4">
-                <Link
-                    to="/browse"
-                    className="flex items-center gap-3 px-4 py-2.5 mb-4 text-white font-headline font-bold text-sm tracking-wide bg-[#E50914]/10 border border-[#E50914]/30 rounded-xl hover:bg-[#E50914]/20 transition-all"
-                >
-                    <span className="material-symbols-outlined text-[#E50914] text-lg">movie_filter</span>
-                    Duyệt Phim
-                </Link>
+
                 <h3 className="font-headline font-bold text-[#FFB4AA] text-lg tracking-tight">Thể Loại</h3>
                 <p className="text-xs text-gray-500 font-body">Duyệt theo thể loại</p>
             </div>

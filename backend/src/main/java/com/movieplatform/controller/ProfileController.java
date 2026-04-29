@@ -2,7 +2,9 @@ package com.movieplatform.controller;
 
 import com.movieplatform.dto.user.ContactUpdateRequest;
 import com.movieplatform.dto.user.SettingsRequest;
+import com.movieplatform.dto.user.ChangePasswordRequest;
 import com.movieplatform.service.ProfileService;
+import com.movieplatform.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +19,9 @@ public class ProfileController {
 
     @Autowired
     private ProfileService profileService;
+
+    @Autowired
+    private AuthService authService;
 
     @PostMapping("/request-otp")
     public ResponseEntity<?> requestOtp(Authentication authentication) {
@@ -61,6 +66,17 @@ public class ProfileController {
         } catch (Exception e) {
             return ResponseEntity.status(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PutMapping("/change-password")
+    public ResponseEntity<?> changePassword(Authentication authentication, @Valid @RequestBody ChangePasswordRequest request) {
+        try {
+            String account = authentication.getName();
+            authService.changePassword(account, request.getOldPassword(), request.getNewPassword());
+            return ResponseEntity.ok(Map.of("message", "Password changed successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 }

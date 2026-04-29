@@ -4,6 +4,7 @@ import useAuthStore from '../store/useAuthStore'
 import { historyService } from '../services/historyService'
 import { profileService } from '../services/profileService'
 import { watchlistService } from '../services/watchlistService'
+import { billingService } from '../services/billingService'
 import { Loader2 } from 'lucide-react'
 
 export default function ProfilePage() {
@@ -18,6 +19,20 @@ export default function ProfilePage() {
     const [contactError, setContactError] = useState('')
     const [isSaving, setIsSaving] = useState(false)
     const [isUploading, setIsUploading] = useState(false)
+
+    // Password State
+    const [isChangingPassword, setIsChangingPassword] = useState(false)
+    const [passwordForm, setPasswordForm] = useState({ oldPassword: '', newPassword: '' })
+    const [passwordError, setPasswordError] = useState('')
+
+    // Billing State
+    const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false)
+    const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
+    const [plans, setPlans] = useState([])
+    const [orderHistory, setOrderHistory] = useState([])
+    const [selectedPlan, setSelectedPlan] = useState(null)
+    const [billingStep, setBillingStep] = useState('select') // 'select' | 'qr' | 'success'
+    const [isProcessing, setIsProcessing] = useState(false)
 
     const fileInputRef = useRef(null)
 
@@ -77,6 +92,92 @@ export default function ProfilePage() {
         } finally {
             setIsSaving(false);
         }
+    }
+
+    const handleChangePassword = async () => {
+        if (!passwordForm.oldPassword || !passwordForm.newPassword) {
+            setPasswordError('Vui lòng điền đủ thông tin');
+            return;
+        }
+        setIsSaving(true);
+        try {
+            await profileService.changePassword(passwordForm.oldPassword, passwordForm.newPassword);
+            setIsChangingPassword(false);
+            setPasswordForm({ oldPassword: '', newPassword: '' });
+            alert("Đổi mật khẩu thành công!");
+        } catch (err) {
+            setPasswordError(err.response?.data?.message || err.response?.data?.error || 'Lỗi đổi mật khẩu');
+        } finally {
+            setIsSaving(false);
+        }
+    }
+
+    // Billing handlers
+    const handleOpenUpgrade = async () => {
+        setIsUpgradeModalOpen(true)
+        setBillingStep('select')
+        setSelectedPlan(null)
+        try {
+            const data = await billingService.getPlans()
+            setPlans(data || [])
+        } catch (err) {
+            console.error('Failed to load plans', err)
+        }
+    }
+
+    const handleOpenInvoice = async () => {
+        setIsInvoiceModalOpen(true)
+        try {
+            const data = await billingService.getOrderHistory()
+            setOrderHistory(data || [])
+        } catch (err) {
+            console.error('Failed to load order history', err)
+        }
+    }
+
+    const handleSelectPlan = (rawPlan) => {
+        setSelectedPlan(getPlanDisplay(rawPlan))
+        setBillingStep('qr')
+    }
+
+    const handleConfirmPayment = async () => {
+        if (!selectedPlan) return
+        setIsProcessing(true)
+        try {
+            await billingService.createOrder(selectedPlan.id, 'QR_BANK_TRANSFER')
+            setBillingStep('success')
+            // Refresh user data to update rank badge
+            await fetchCurrentUser()
+        } catch (err) {
+            alert(err.response?.data?.error || 'Lỗi khi xử lý thanh toán')
+        } finally {
+            setIsProcessing(false)
+        }
+    }
+
+    const formatPrice = (val) => {
+        return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val)
+    }
+
+    // Vietnamese display mapping for plan data (avoids DB encoding issues)
+    const planDisplayMap = {
+        'MEMBER': { name: 'Gói Thành Viên', features: ['Xem phim có quảng cáo', 'Chất lượng 720p', '1 thiết bị'] },
+        'CLOSE': { name: 'Gói Thân Thiết', features: ['Không quảng cáo', 'Chất lượng 1080p', '2 thiết bị', 'Tải phim offline'] },
+        'VIP': { name: 'Gói VIP', features: ['Không quảng cáo', 'Chất lượng 4K', '4 thiết bị', 'Tải phim offline', 'Xem phim sớm'] },
+    }
+
+    const getPlanDisplay = (plan) => {
+        const mapped = planDisplayMap[plan.rankLevel]
+        return {
+            ...plan,
+            name: mapped?.name || plan.name,
+            features: mapped?.features || plan.features || [],
+        }
+    }
+
+    const getQrCodeUrl = (amount) => {
+        const amt = Math.round(amount).toString()
+        return `https://img.vietqr.io/image/970436-1041228495-print.png?amount=${amt}&addInfo=RIMCINEMA%20UPGRADE&accountName=Nguyen%20Ho%20Sy%20Phu`
     }
 
     const handleAvatarClick = () => {
@@ -414,30 +515,213 @@ export default function ProfilePage() {
 
                         {/* Security Card */}
                         <div className="md:col-span-1 p-6 bg-surface-container-low rounded-xl border border-outline-variant/10 text-center flex flex-col items-center justify-center">
-                            <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-4 block">password</span>
-                            <h4 className="font-headline font-bold mb-2">Bảo Mật</h4>
-                            <p className="text-xs text-on-surface-variant mb-4">Đổi mật khẩu để đảm bảo an toàn.</p>
-                            <button className="text-xs font-bold py-2 px-4 border border-outline-variant/30 rounded-lg hover:bg-surface-variant transition-colors">Đổi Mật Khẩu</button>
+                            {!isChangingPassword ? (
+                                <>
+                                    <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-4 block">password</span>
+                                    <h4 className="font-headline font-bold mb-2">Bảo Mật</h4>
+                                    <p className="text-xs text-on-surface-variant mb-4">Đổi mật khẩu để đảm bảo an toàn.</p>
+                                    <button onClick={() => setIsChangingPassword(true)} className="text-xs font-bold py-2 px-4 border border-outline-variant/30 rounded-lg hover:bg-surface-variant transition-colors">Đổi Mật Khẩu</button>
+                                </>
+                            ) : (
+                                <div className="w-full text-left">
+                                    <h4 className="font-headline font-bold mb-4 text-center">Đổi Mật Khẩu</h4>
+                                    {passwordError && <p className="text-error text-xs bg-error/10 p-2 rounded mb-3 text-center">{passwordError}</p>}
+                                    <input 
+                                        type="password" 
+                                        placeholder="Mật khẩu cũ" 
+                                        className="w-full bg-surface-container-lowest border border-outline-variant/50 focus:border-primary rounded-lg text-on-surface px-3 py-2 text-xs mb-3 outline-none"
+                                        value={passwordForm.oldPassword}
+                                        onChange={e => setPasswordForm({...passwordForm, oldPassword: e.target.value})}
+                                    />
+                                    <input 
+                                        type="password" 
+                                        placeholder="Mật khẩu mới" 
+                                        className="w-full bg-surface-container-lowest border border-outline-variant/50 focus:border-primary rounded-lg text-on-surface px-3 py-2 text-xs mb-4 outline-none"
+                                        value={passwordForm.newPassword}
+                                        onChange={e => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                                    />
+                                    <div className="flex gap-2">
+                                        <button onClick={() => { setIsChangingPassword(false); setPasswordError(''); }} className="flex-1 py-2 bg-surface-container-highest rounded text-xs font-bold hover:bg-surface-variant transition">Hủy</button>
+                                        <button onClick={handleChangePassword} disabled={isSaving} className="flex-1 py-2 bg-primary-container text-on-primary-container rounded text-xs font-bold hover:opacity-90 transition">
+                                            {isSaving ? 'Đang lưu...' : 'Lưu'}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Billing Card */}
                         <div className="md:col-span-3 p-6 bg-surface-container-low rounded-xl border border-outline-variant/10 flex flex-wrap items-center justify-between gap-4">
                             <div className="flex items-center gap-6">
                                 <div className="w-16 h-10 bg-surface-container-high rounded-md flex items-center justify-center border border-outline-variant/20">
-                                    <span className="font-bold italic text-on-surface">VISA</span>
+                                    <span className="material-symbols-outlined text-primary">credit_card</span>
                                 </div>
                                 <div>
                                     <h4 className="font-headline font-bold">Thanh Toán & Hạng Thành Viên</h4>
-                                    <p className="text-sm text-on-surface-variant">Ngày thanh toán tiếp theo: {new Date(new Date().setMonth(new Date().getMonth() + 1)).toLocaleDateString('vi-VN')}</p>
+                                    <p className="text-sm text-on-surface-variant">Gói hiện tại: <span className="font-bold text-on-surface">{user?.membershipRank === 'VIP' ? 'VIP' : user?.membershipRank === 'CLOSE' ? 'Thân Thiết' : 'Thành Viên'}</span></p>
                                 </div>
                             </div>
                             <div className="flex gap-4">
-                                <button className="text-sm font-bold text-primary-container">Xem Hóa Đơn</button>
-                                <button className="text-sm font-bold px-6 py-2 bg-white text-black rounded-lg hover:bg-gray-200 transition">Nâng Cấp Gói</button>
+                                <button onClick={handleOpenInvoice} className="text-sm font-bold text-primary-container hover:underline">Xem Hóa Đơn</button>
+                                <button onClick={handleOpenUpgrade} className="text-sm font-bold px-6 py-2 bg-white text-black rounded-lg hover:bg-gray-200 transition">Nâng Cấp Gói</button>
                             </div>
                         </div>
                     </div>
                 </section>
+            )}
+
+            {/* ============ UPGRADE PLAN MODAL ============ */}
+            {isUpgradeModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => { setIsUpgradeModalOpen(false); setBillingStep('select'); }}></div>
+                    <div className="relative bg-surface-container-high rounded-2xl max-w-3xl w-full border border-outline-variant/20 overflow-hidden" style={{animation: 'scaleIn 0.2s ease-out'}}>
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between p-6 border-b border-outline-variant/10">
+                            <h3 className="font-headline font-bold text-xl">
+                                {billingStep === 'select' && 'Chọn Gói Thành Viên'}
+                                {billingStep === 'qr' && 'Thanh Toán QR'}
+                                {billingStep === 'success' && 'Thanh Toán Thành Công!'}
+                            </h3>
+                            <button onClick={() => { setIsUpgradeModalOpen(false); setBillingStep('select'); }} className="p-1 hover:bg-surface-variant rounded-lg transition">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+
+                        {/* Step: Select Plan */}
+                        {billingStep === 'select' && (
+                            <div className="p-6">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    {plans.map(rawPlan => {
+                                        const plan = getPlanDisplay(rawPlan)
+                                        const isCurrentPlan = user?.membershipRank === plan.rankLevel
+                                        const isBestValue = plan.rankLevel === 'VIP'
+                                        return (
+                                            <div key={plan.id} className={`relative p-5 rounded-xl border-2 transition-all flex flex-col ${
+                                                isBestValue ? 'border-yellow-500/50 bg-yellow-500/5' : 'border-outline-variant/20 bg-surface-container'
+                                            } ${isCurrentPlan ? 'opacity-60' : 'hover:border-primary/50 hover:scale-[1.02] cursor-pointer'}`}>
+                                                {isBestValue && (
+                                                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-yellow-500 text-black text-[10px] font-bold uppercase tracking-widest rounded-full">Phổ biến nhất</div>
+                                                )}
+                                                <div className="mb-4">
+                                                    <h4 className="font-headline font-bold text-lg">{plan.name}</h4>
+                                                    <div className="mt-2">
+                                                        <span className="font-headline font-extrabold text-2xl">{plan.price > 0 ? formatPrice(plan.price) : 'Miễn Phí'}</span>
+                                                        {plan.durationDays > 0 && <span className="text-xs text-on-surface-variant"> /{plan.durationDays} ngày</span>}
+                                                    </div>
+                                                </div>
+                                                <ul className="space-y-2 mb-6 flex-1">
+                                                    {(plan.features || []).map((f, i) => (
+                                                        <li key={i} className="flex items-start gap-2 text-xs text-on-surface-variant">
+                                                            <span className="material-symbols-outlined text-primary text-sm mt-0.5" style={{fontVariationSettings: "'FILL' 1"}}>check_circle</span>
+                                                            {f}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                                {isCurrentPlan ? (
+                                                    <div className="w-full py-2.5 text-center text-xs font-bold text-on-surface-variant bg-surface-container-highest rounded-lg">Gói Hiện Tại</div>
+                                                ) : plan.price > 0 ? (
+                                                    <button onClick={() => handleSelectPlan(plan)} className={`w-full py-2.5 rounded-lg font-bold text-sm transition-all ${
+                                                        isBestValue ? 'bg-yellow-500 text-black hover:bg-yellow-400' : 'bg-primary-container text-on-primary-container hover:opacity-90'
+                                                    }`}>Chọn Gói Này</button>
+                                                ) : null}
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Step: QR Payment */}
+                        {billingStep === 'qr' && selectedPlan && (
+                            <div className="p-6 flex flex-col items-center text-center">
+                                <div className="mb-4 p-3 bg-surface-container rounded-xl">
+                                    <p className="text-sm text-on-surface-variant mb-1">Gói đã chọn</p>
+                                    <h4 className="font-headline font-bold text-lg">{selectedPlan.name}</h4>
+                                    <p className="font-extrabold text-2xl text-primary mt-1">{formatPrice(selectedPlan.price)}</p>
+                                </div>
+                                <p className="text-sm text-on-surface-variant mb-4">Quét mã QR bên dưới để thanh toán</p>
+                                <div className="bg-white p-3 rounded-xl mb-4 inline-block">
+                                    <img src={getQrCodeUrl(selectedPlan.price)} alt="QR Code Thanh Toán" className="w-56 h-56 object-contain" />
+                                </div>
+                                <p className="text-xs text-on-surface-variant mb-6">Ngân hàng: <strong>Vietcombank</strong> • STK: <strong>1041228495</strong> • <strong>Nguyen Ho Sy Phu</strong></p>
+                                <div className="flex gap-3 w-full max-w-sm">
+                                    <button onClick={() => setBillingStep('select')} className="flex-1 py-3 bg-surface-container-highest hover:bg-surface-variant transition rounded-xl font-bold text-sm">Quay Lại</button>
+                                    <button onClick={handleConfirmPayment} disabled={isProcessing} className="flex-1 py-3 bg-primary-container text-on-primary-container rounded-xl font-bold text-sm hover:opacity-90 transition flex items-center justify-center gap-2">
+                                        {isProcessing ? <><Loader2 className="w-4 h-4 animate-spin" /> Đang xử lý...</> : 'Đã Thanh Toán'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Step: Success */}
+                        {billingStep === 'success' && (
+                            <div className="p-8 text-center">
+                                <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <span className="material-symbols-outlined text-green-500 text-4xl" style={{fontVariationSettings: "'FILL' 1"}}>check_circle</span>
+                                </div>
+                                <h4 className="font-headline font-bold text-2xl mb-2">Nâng Cấp Thành Công!</h4>
+                                <p className="text-on-surface-variant mb-2">Bạn đã nâng cấp lên gói <strong>{selectedPlan?.name}</strong></p>
+                                <p className="text-xs text-on-surface-variant mb-6">Hạng thành viên của bạn đã được cập nhật. Hãy tận hưởng các đặc quyền mới!</p>
+                                <button onClick={() => { setIsUpgradeModalOpen(false); setBillingStep('select'); }} className="px-8 py-3 bg-primary-container text-on-primary-container rounded-xl font-bold hover:opacity-90 transition">Tuyệt Vời!</button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* ============ INVOICE HISTORY MODAL ============ */}
+            {isInvoiceModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsInvoiceModalOpen(false)}></div>
+                    <div className="relative bg-surface-container-high rounded-2xl max-w-2xl w-full border border-outline-variant/20 overflow-hidden" style={{animation: 'scaleIn 0.2s ease-out'}}>
+                        <div className="flex items-center justify-between p-6 border-b border-outline-variant/10">
+                            <h3 className="font-headline font-bold text-xl">Lịch Sử Hóa Đơn</h3>
+                            <button onClick={() => setIsInvoiceModalOpen(false)} className="p-1 hover:bg-surface-variant rounded-lg transition">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <div className="p-6 max-h-[60vh] overflow-y-auto">
+                            {orderHistory.length > 0 ? (
+                                <div className="space-y-3">
+                                    {orderHistory.map(order => (
+                                        <div key={order.id} className="flex items-center justify-between p-4 bg-surface-container rounded-xl border border-outline-variant/10">
+                                            <div className="flex items-center gap-4">
+                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                                                    order.status === 'COMPLETED' ? 'bg-green-500/20' : 'bg-yellow-500/20'
+                                                }`}>
+                                                    <span className={`material-symbols-outlined text-lg ${
+                                                        order.status === 'COMPLETED' ? 'text-green-500' : 'text-yellow-500'
+                                                    }`} style={{fontVariationSettings: "'FILL' 1"}}>
+                                                        {order.status === 'COMPLETED' ? 'check_circle' : 'pending'}
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-sm">{order.planName}</h4>
+                                                    <p className="text-xs text-on-surface-variant">
+                                                        {new Date(order.createdAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                        {order.expiresAt && ` • HSD: ${new Date(order.expiresAt).toLocaleDateString('vi-VN')}`}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="font-bold text-sm">{formatPrice(order.amount)}</p>
+                                                <p className={`text-[10px] font-bold uppercase tracking-widest ${
+                                                    order.status === 'COMPLETED' ? 'text-green-500' : 'text-yellow-500'
+                                                }`}>{order.status === 'COMPLETED' ? 'Đã thanh toán' : order.status}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-12">
+                                    <span className="material-symbols-outlined text-5xl text-surface-container-highest mb-3 block">receipt_long</span>
+                                    <p className="text-on-surface-variant">Chưa có hóa đơn nào.</p>
+                                    <p className="text-xs text-on-surface-variant/60 mt-1">Nâng cấp gói thành viên để bắt đầu.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
             )}
         </main>
     )

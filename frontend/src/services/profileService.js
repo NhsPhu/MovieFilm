@@ -19,5 +19,10 @@ export const profileService = {
     updateSettings: async (settings) => {
         const response = await api.put('/users/profile/settings', settings)
         return response.data
+    },
+
+    changePassword: async (oldPassword, newPassword) => {
+        const response = await api.put('/users/profile/change-password', { oldPassword, newPassword })
+        return response.data
     }
 }

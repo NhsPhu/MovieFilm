@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { movieService } from '../services/movieService'
+import { watchlistService } from '../services/watchlistService'
+import useAuthStore from '../store/useAuthStore'
 import TrailerModal from '../components/TrailerModal'
 import ShareModal from '../components/ShareModal'
 import ReportModal from '../components/ReportModal'
@@ -12,6 +14,35 @@ export default function MovieDetailPage() {
     const [isTrailerOpen, setIsTrailerOpen] = useState(false)
     const [isShareOpen, setIsShareOpen] = useState(false)
     const [isReportOpen, setIsReportOpen] = useState(false)
+
+    // Watchlist logic
+    const { token } = useAuthStore()
+    const [isInWatchlist, setIsInWatchlist] = useState(false)
+    const [isWatchlistLoading, setIsWatchlistLoading] = useState(false)
+
+    const checkWatchlistStatus = () => {
+        if (!token) return
+        watchlistService.checkInWatchlist(id)
+            .then(data => setIsInWatchlist(data.inWatchlist))
+            .catch(console.error)
+    }
+
+    const toggleWatchlist = async () => {
+        if (!token) return alert("Vui lòng đăng nhập để thêm phim vào danh sách.")
+        setIsWatchlistLoading(true)
+        try {
+            if (isInWatchlist) {
+                await watchlistService.removeFromWatchlist(id)
+                setIsInWatchlist(false)
+            } else {
+                await watchlistService.addToWatchlist(id)
+                setIsInWatchlist(true)
+            }
+        } catch (error) {
+            console.error("Lỗi khi cập nhật danh sách", error)
+        }
+        setIsWatchlistLoading(false)
+    }
 
     useEffect(() => {
         movieService.getMovie(id).then(setMovie).catch(console.error)
@@ -34,7 +65,9 @@ export default function MovieDetailPage() {
                     .then(related => setRecommended(related || []))
                     .catch(() => {})
             })
-    }, [id])
+            
+        checkWatchlistStatus()
+    }, [id, token])
 
     const m = movie || {}
 
@@ -88,9 +121,14 @@ export default function MovieDetailPage() {
                             <span className="material-symbols-outlined">smart_display</span>
                             Xem Trailer
                         </button>
-                        <button className="flex items-center justify-center w-full sm:w-14 h-12 sm:h-auto sm:aspect-square bg-tertiary-container text-on-tertiary-container rounded-xl hover:scale-105 sm:hover:scale-105 active:opacity-80 transition-all font-bold gap-2">
-                            <span className="material-symbols-outlined">add</span>
-                            <span className="sm:hidden text-base">Thêm Vào Danh Sách</span>
+                        <button 
+                            onClick={toggleWatchlist} 
+                            disabled={isWatchlistLoading}
+                            className={`flex items-center justify-center w-full sm:w-14 h-12 sm:h-auto sm:aspect-square text-white rounded-xl hover:scale-105 sm:hover:scale-105 active:opacity-80 transition-all font-bold gap-2 ${isInWatchlist ? 'bg-primary' : 'bg-tertiary-container text-on-tertiary-container'}`}>
+                            <span className="material-symbols-outlined" style={{fontVariationSettings: "'FILL' " + (isInWatchlist ? '1' : '0')}}>
+                                {isInWatchlist ? 'check' : 'add'}
+                            </span>
+                            <span className="sm:hidden text-base">{isInWatchlist ? 'Đã Thêm Vào Danh Sách' : 'Thêm Vào Danh Sách'}</span>
                         </button>
                     </div>
 
