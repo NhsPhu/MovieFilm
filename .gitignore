@@ -1,47 +1,80 @@
 # Git Ignore for Movie Streaming Platform
 
+# ============================================
+# ENVIRONMENT VARIABLES (NEVER COMMIT THESE!)
+# ============================================
+.env
+*.env
+**/.env
+**/**.env
+
+# ============================================
 # Backend (Java/Maven)
+# ============================================
 backend/target/
 backend/.mvn/
 backend/mvnw
 backend/mvnw.cmd
+*.class
+*.jar
+*.war
 
+# ============================================
 # Frontend (Node)
-frontend/node_modules/
+# ============================================
+node_modules/
 frontend/dist/
 frontend/build/
 frontend/.vite/
 
+# ============================================
 # AI Service (Python)
+# ============================================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 ai-service/venv/
-ai-service/__pycache__/
-ai-service/*.pyc
-ai-service/.env
+.Python
+env/
+venv/
 
+# ============================================
 # Android
+# ============================================
 mobile/.gradle/
 mobile/build/
 mobile/local.properties
 mobile/.idea/
 mobile/*.iml
 
-# Storage
+# ============================================
+# Storage (large video files)
+# ============================================
 storage/movies/*/
 
+# ============================================
 # IDEs
+# ============================================
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
 
+# ============================================
 # OS
+# ============================================
 .DS_Store
 Thumbs.db
 
+# ============================================
 # Logs
+# ============================================
 *.log
 logs/
 
-# Database
+# ============================================
+# Database backups
+# ============================================
 *.sql.backup
