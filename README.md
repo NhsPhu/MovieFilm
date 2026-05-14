@@ -153,7 +153,7 @@ Cài đặt các tools sau:
 
 ```bash
 # Clone repository
-cd d:\Save\Project\movie-streaming-platform
+cd MovieFilm
 
 # Start all services
 docker-compose up -d
